@@ -582,9 +582,14 @@ render=function(){
   let html='<div class="heading"><div><h1>Team Onboarding</h1><div class="sub">Agent KYC, bank verification, reporting RM assignment and approval tracking.</div></div></div>';
   html+=pcOnboardForm();
   html+='<section class="panel"><h3>Onboarding Approval Queue</h3><p class="sub">Owner ko har request ke saath request submit karne wale ka naam aur approval kisne kiya, dono dikhenge.</p>';
-  html+=rows.length?'<div class="tablewrap"><table class="table"><thead><tr><th>Agent</th><th>Mobile</th><th>Reporting RM</th><th>Requested By</th><th>Status</th><th>Approved By</th><th>Details / Action</th></tr></thead><tbody>':
-  '<div class="empty">No onboarding requests yet.</div>';
-  html+=rows.map(x=>'<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.mobile)+'</td><td>'+pcEsc(x.rm)+'</td><td>'+pcEsc(x.requestedBy)+' · '+pcEsc(x.requestedRole)+'</td><td><span class="pill '+(x.status==='Approved'?'':'orange')+'">'+pcEsc(x.status)+'</span></td><td>'+pcEsc(x.approvedBy||'—')+'</td><td><button class="btn" onclick="pcShowOnboard('+x.id+')">View KYC & Bank</button> '+(canApprove&&x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveOnboard('+x.id+')">Approve Agent</button>':'')+'</td></tr>').join('')+'</tbody></table></div>':'';
+  if(rows.length){
+   html+='<div class="tablewrap"><table class="table"><thead><tr><th>Agent</th><th>Mobile</th><th>Reporting RM</th><th>Requested By</th><th>Status</th><th>Approved By</th><th>Details / Action</th></tr></thead><tbody>';
+   html+=rows.map(x=>{
+    const approveButton=canApprove&&x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveOnboard('+x.id+')">Approve Agent</button>':'';
+    return '<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.mobile)+'</td><td>'+pcEsc(x.rm)+'</td><td>'+pcEsc(x.requestedBy)+' · '+pcEsc(x.requestedRole)+'</td><td><span class="pill '+(x.status==='Approved'?'':'orange')+'">'+pcEsc(x.status)+'</span></td><td>'+pcEsc(x.approvedBy||'—')+'</td><td><button class="btn" onclick="pcShowOnboard('+x.id+')">View KYC & Bank</button> '+approveButton+'</td></tr>';
+   }).join('');
+   html+='</tbody></table></div>';
+  }else{html+='<div class="empty">No onboarding requests yet.</div>';}
   html+='</section><section class="panel" style="margin-top:18px"><h3>Approved Team Members</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Reporting RM</th><th>Status</th></tr></thead><tbody>'+db.team.filter(x=>x.role==='Agent'||x.role==='RM').map(x=>'<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.role)+'</td><td>'+pcEsc(x.reportsTo||'—')+'</td><td><span class="pill">Active</span></td></tr>').join('')+'</tbody></table></div></section>';
   $('view').innerHTML=html;
   const form=$('pcAgentOnboardForm');
