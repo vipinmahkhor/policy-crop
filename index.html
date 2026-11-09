@@ -504,7 +504,8 @@ goAdd=function(kind,customerId=null){
  const type=$('pcAssignType'),box=$('pcAssignFields'),safe=esc;
  type.onchange=()=>{
   box.innerHTML='';$('f_assignedTo').value='';$('f_assignedRM').value='';
-  if(type.value==='Direct'){\n   $('f_assignedTo').value='';$('f_assignedRM').value='';\n   box.innerHTML='<div class="sub">Customer directly Owner ke under save hoga.</div>';\n  }else if(type.value==='RM'){
+  if(type.value==='Direct'){
+   $('f_assignedTo').value='';$('f_assignedRM').value='';\n   box.innerHTML='<div class="sub">Customer directly Owner ke under save hoga.</div>';\n  }else if(type.value==='RM'){
    const rmOptions=rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
    box.innerHTML='<label>Select RM</label><select id="pcRM"><option value="">Select RM</option>'+rmOptions+'</select><div style="margin-top:8px"><label>Select Agent (required)</label><select id="pcAgent" disabled><option value="">First select RM</option></select></div>';
    $('pcRM').onchange=()=>{
