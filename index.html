@@ -731,7 +731,7 @@ render=function(){
  function current(){
   const r=$('role').value,n=$('pcIdentity').value||activeProfileName;
   if(r==='Customer')return {role:r,name:n,obj:db.customers.find(x=>x.name===n)};
-  if(r==='Owner')return {role:r,name:'Vipin Gupta',obj:{name:'Vipin Gupta',role:'Owner',...(db.ownerProfile||{})}};
+  if(r==='Owner'){if(!db.ownerProfile)db.ownerProfile={name:'Vipin Gupta',role:'Owner'};return {role:r,name:'Vipin Gupta',obj:db.ownerProfile}};
   return {role:r,name:n,obj:db.team.find(x=>x.name===n&&x.role===r)||{name:n,role:r}};
  }
  window.pcOpenMyProfile=()=>{identityOptions();page='myprofile';render()};
