@@ -844,7 +844,10 @@ render=function(){
    if(!vehicle.reg)return alert('Vehicle registration number required.');
    if(mode==='new'){customerObj={id:Date.now(),name:customer,mobile:fd.get('mobile')||'',email:fd.get('email')||'',city:fd.get('city')||'',kyc:[],vehicles:[],createdBy:who()+' ('+r()+')'};db.customers.push(customerObj)}
    let docs=[];for(let [k,label] of [['aadhaar','Aadhaar'],['pan','PAN'],['previous','Previous Policy'],['rc','RC'],['otherquote','Other Company Quote']]){let z=await read(form.elements[k].files[0]);if(z)docs.push({...z,label})}for(let z of form.elements.otherdocs.files){let d=await read(z);docs.push({...d,label:'Other Document'})}
-   let at=new Date().toISOString(),requester=who(),role=rq(),vId=fd.get('vehicleId')||null;
+   let vId=fd.get('vehicleId')||null,selectedVehicle=vId?db.vehicles.find(v=>String(v.id)===String(vId)):null;
+   if(customerObj){for(const d of (customerObj.kyc||[]))docs.push({...d,label:d.label||d.name||'Saved Customer KYC'});}
+   if(selectedVehicle){for(const d of [...(selectedVehicle.docs||[]),...(selectedVehicle.kyc||[]),...(selectedVehicle.policyDocs||[])])docs.push({...d,label:d.label||d.name||'Saved Vehicle Document'});}
+   let at=new Date().toISOString(),requester=who(),role=rq();
    db.quotes.push({id:Date.now()+1,customer,customerId:customerObj.id,mobile:fd.get('mobile')||customerObj.mobile||'',email:fd.get('email')||customerObj.email||'',vehicle,vehicleId:vId?Number(vId):null,docs,notes:fd.get('notes'),requestedBy:requester,requesterRole:role,routing:route(customer,role),status:'Requested — Owner/Employee Review',createdAt:at,history:[{at,by:requester,action:'Quote requested'}]});
    persist();closeModal();render();alert('Quote request submit ho gayi.');
   };
