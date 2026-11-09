@@ -2,6 +2,64 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PolicyCrop | Insurance CRM</title>
 <style>
 :root{--navy:#10213f;--blue:#1769e0;--teal:#08a89e;--bg:#f4f7fc;--ink:#172b4d;--muted:#718096;--line:#e5eaf2;--white:#fff}*{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{min-height:100vh}.sidebar{position:fixed;inset:0 auto 0 0;width:248px;background:var(--navy);color:#dce7f8;padding:18px 13px;overflow:auto;z-index:4}.brand{display:flex;align-items:center;gap:10px;padding:5px 9px 22px;font-size:21px;font-weight:800;color:white}.brand-mark{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#14b8a6,#1769e0);display:grid;place-items:center}.group{font-size:10px;letter-spacing:1.4px;color:#8497b5;padding:14px 12px 7px}.nav button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:#c4d1e5;padding:11px 12px;border-radius:10px;text-align:left;margin:2px 0;font-size:13px}.nav button:hover,.nav button.active{background:#20385e;color:#fff}.ico{width:18px;text-align:center;font-size:16px}.main{margin-left:248px;min-height:100vh}.top{height:68px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 26px;position:sticky;top:0;z-index:3}.search{width:min(470px,50%);border:1px solid var(--line);border-radius:10px;padding:11px 14px;background:#f9fbfe}.topright{display:flex;align-items:center;gap:12px}.role{border:1px solid var(--line);border-radius:9px;padding:9px;background:white}.avatar{width:34px;height:34px;border-radius:50%;background:#e5efff;color:#1557b7;display:grid;place-items:center;font-weight:700}.content{padding:25px 28px;max-width:1600px;margin:auto}.notice{background:#fff3d2;border:1px solid #f2dfab;color:#755317;padding:12px 15px;border-radius:11px;font-size:12px;margin-bottom:22px}.heading{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}.heading h1{font-size:25px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px}.btn{border:1px solid var(--line);background:white;color:var(--ink);border-radius:9px;padding:10px 14px;font-size:13px}.btn.primary{background:var(--blue);color:white;border-color:var(--blue)}.btn.teal{background:var(--teal);color:white;border-color:var(--teal)}.btn.danger{color:#c33}.cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin:18px 0}.stat,.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 2px 8px #1c35500a}.stat .label{font-size:12px;color:var(--muted)}.stat strong{display:block;font-size:25px;margin:9px 0 5px}.stat small{font-size:11px;color:#119688}.cols{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}.panel h3{font-size:15px;margin:0 0 15px}.barrow{display:grid;grid-template-columns:95px 1fr 25px;gap:10px;align-items:center;margin:14px 0;font-size:12px}.bar{height:9px;background:#edf1f7;border-radius:10px;overflow:hidden}.bar i{display:block;height:100%;background:var(--teal);border-radius:10px}.expiry{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:12px}.tablewrap{overflow:auto;background:white;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:700px}.table th,.table td{padding:13px 15px;text-align:left;border-bottom:1px solid var(--line);font-size:12px}.table th{color:#64748b;background:#f9fbfe;font-weight:600}.table tr:last-child td{border:0}.pill{display:inline-block;padding:5px 8px;border-radius:20px;background:#e9f8f5;color:#078575;font-size:10px}.pill.orange{background:#fff2df;color:#a15b00}.pill.red{background:#ffeded;color:#c43b3b}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}.fieldgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.field label{display:block;font-size:11px;color:#64748b;margin-bottom:5px}.field input,.field select,.field textarea{width:100%;border:1px solid #dce3ed;border-radius:8px;padding:10px;background:white}.field textarea{min-height:80px}.modal{position:fixed;inset:0;background:#0b1d36a6;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}.modal.show{display:flex}.modalbox{background:white;border-radius:16px;width:min(760px,100%);max-height:90vh;overflow:auto;padding:22px}.modalhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.modalhead h2{margin:0;font-size:19px}.tabs{display:flex;gap:7px;border-bottom:1px solid var(--line);margin:12px 0 18px}.tabs button{border:0;background:transparent;padding:10px 14px;color:#607089}.tabs button.active{color:var(--blue);border-bottom:2px solid var(--blue)}.hide{display:none!important}.link{border:0;background:none;color:var(--blue);padding:0;font-weight:600}.empty{padding:30px;text-align:center;color:var(--muted)}.bannerpreview img{max-width:100%;max-height:220px;object-fit:contain;border-radius:10px}.renewal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.renewal-card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 2px 8px #1c35500a}.renewal-top{display:flex;justify-content:space-between;gap:12px}.renewal-name{font-size:15px;font-weight:650}.renewal-vehicle{font-size:13px;color:#1769e0;font-weight:700;margin-left:7px;white-space:nowrap}.renewal-meta{font-size:12px;color:var(--muted);margin-top:7px}.renewal-buttons{display:flex;gap:8px;margin-top:13px;flex-wrap:wrap}.renewal-date{font-size:12px;text-align:right;white-space:nowrap}.renewal-date b{display:block;font-size:14px}.dash-banner{margin:0 0 18px;border-radius:14px;overflow:hidden;background:linear-gradient(110deg,#083b80,#04a69c)}.dash-banner img{display:block;width:100%;max-height:245px;object-fit:cover}.mobilehead{display:none}
+/* PolicyCrop premium visual refresh */
+:root{--navy:#0b1d3a;--blue:#1769e0;--teal:#0aa99b;--bg:#f3f6fb;--ink:#152744;--muted:#74839a;--line:#e4eaf3}
+body{background:linear-gradient(135deg,#f5f8fd 0%,#eef3fa 100%);font-family:Inter,"Segoe UI",Arial,sans-serif;letter-spacing:.05px}
+.sidebar{background:linear-gradient(180deg,#0b1d3a 0%,#102b50 100%);box-shadow:8px 0 28px #10213f12;padding:22px 14px}
+.brand{font-size:23px;letter-spacing:-.5px;padding:7px 10px 8px}
+.brand:after{content:"MOTOR INSURANCE CRM";display:block;position:absolute;top:62px;left:59px;font-size:9px;letter-spacing:1.25px;color:#8fa6c8;font-weight:600}
+.brand-mark{width:38px;height:38px;border-radius:12px;box-shadow:0 5px 16px #05a99c40}
+.group{font-size:9px;letter-spacing:1.7px;color:#8299bb;padding:20px 12px 8px}
+.nav button{padding:12px 13px;border-radius:11px;margin:3px 0;font-size:13px;transition:background .18s ease,transform .18s ease}
+.nav button:hover{background:#ffffff15;transform:translateX(2px)}
+.nav button.active{background:linear-gradient(100deg,#1769e0,#148dba);box-shadow:0 5px 15px #071a3440;color:#fff}
+.main{background:transparent}
+.top{height:74px;padding:0 30px;background:#ffffffed;backdrop-filter:blur(12px);box-shadow:0 3px 18px #17345a08}
+.search{border-radius:13px;background:#f6f8fc;border:1px solid #e1e8f2;padding:12px 16px;transition:border .2s,box-shadow .2s}
+.search:focus,.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#75a9f5;box-shadow:0 0 0 3px #1769e018}
+.role{border-radius:11px;padding:10px 13px;background:#f8faff}
+.avatar{width:38px;height:38px;background:linear-gradient(135deg,#d9eaff,#c9f4ee);color:#1459a6;border:2px solid white;box-shadow:0 2px 8px #10213f18}
+.content{padding:30px 32px;max-width:1680px}
+.notice{border-radius:13px;padding:13px 17px;box-shadow:0 3px 12px #9b76100d}
+.heading{margin-bottom:23px}
+.heading h1{font-size:29px;letter-spacing:-.8px;color:#102344}
+.btn{border-radius:10px;padding:10px 15px;font-weight:600;transition:transform .15s,box-shadow .15s,background .15s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 5px 13px #18385b14}
+.btn.primary{background:linear-gradient(110deg,#1769e0,#1558c4);box-shadow:0 5px 13px #1769e02a}
+.btn.teal{background:linear-gradient(110deg,#0aa99b,#078a84)}
+.cards{gap:16px;margin:20px 0 22px}
+.stat,.panel,.tablewrap,.renewal-card{border:1px solid #e5ebf4;border-radius:17px;box-shadow:0 5px 18px #19385b0a}
+.stat{padding:19px;position:relative;overflow:hidden}
+.stat:after{content:"";position:absolute;width:76px;height:76px;border-radius:50%;right:-28px;top:-30px;background:#eaf2ff}
+.stat .label{font-weight:600;letter-spacing:.2px}
+.stat strong{font-size:27px;letter-spacing:-.6px;color:#102344}
+.panel{padding:20px}
+.panel h3{font-size:16px;letter-spacing:-.2px}
+.cols{gap:18px}
+.tablewrap{overflow:auto}
+.table th{background:#f5f8fd;text-transform:uppercase;letter-spacing:.65px;font-size:10px}
+.table td{font-size:12px}
+.table tr:hover td{background:#f9fbff}
+.fieldgrid{gap:15px}
+.field label{font-weight:600;letter-spacing:.2px}
+.field input,.field select,.field textarea{border-radius:10px;padding:11px 12px}
+.modalbox{border-radius:20px;box-shadow:0 25px 80px #071a3440;padding:25px}
+.tabs button{font-weight:600}
+.tabs button.active{color:#1769e0}
+.dash-banner{margin:0 0 22px;border-radius:18px;box-shadow:0 9px 25px #10213f18}
+.dash-banner img{max-height:260px}
+.renewal-grid{gap:16px}
+.renewal-card{padding:19px;transition:transform .18s,box-shadow .18s}
+.renewal-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px #19385b12}
+.renewal-name{font-size:16px;color:#102344}
+.renewal-vehicle{display:inline-block;background:#eaf2ff;padding:4px 8px;border-radius:7px;font-size:12px}
+.renewal-meta{line-height:1.7}
+.renewal-date b{font-size:15px;color:#203b61}
+.pill{font-weight:700;letter-spacing:.15px}
+.empty{border-radius:14px;background:#fff}
+@media(max-width:1100px){.content{padding:23px}.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:700px){.sidebar{box-shadow:none}.brand:after{display:none}.top{padding:0 12px}.content{padding:14px}.heading h1{font-size:24px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.stat strong{font-size:20px}.renewal-card{padding:14px}}
+
 @media(max-width:1100px){.cards{grid-template-columns:repeat(3,1fr)}.sidebar{width:215px}.main{margin-left:215px}.cols{grid-template-columns:1fr}.renewal-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.sidebar{position:static;width:auto;height:auto;padding:10px}.brand{padding:4px 8px 10px}.nav{display:flex;overflow:auto;gap:4px}.group{display:none}.nav button{white-space:nowrap;width:auto;padding:9px}.main{margin:0}.top{padding:0 12px;height:58px}.search{width:48%;font-size:11px}.content{padding:15px}.cards{grid-template-columns:repeat(2,1fr);gap:9px}.stat{padding:12px}.stat strong{font-size:20px}.heading{align-items:flex-start;flex-direction:column}.fieldgrid{grid-template-columns:1fr}.topright .username{display:none}}
 </style></head><body><div class="app">
