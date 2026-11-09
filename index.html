@@ -441,5 +441,107 @@ saveForm=function(k){
  return pcSaveCascade(k);
 };
 
+
+/* PolicyCrop role identity + strict demo visibility scoping */
+let pcActiveUser='Vipin Gupta';
+function pcTeamFor(role){return (db.team||[]).filter(u=>u.role===role)}
+function pcAgentsForRM(rm){return pcTeamFor('Agent').filter(a=>(a.reportsTo||a.manager||a.rm||'')===rm)}
+function pcVisibleCustomers(){
+ const role=$('role').value;
+ if(role==='Owner')return db.customers;
+ if(role==='RM')return db.customers.filter(c=>c.assignedRM===pcActiveUser);
+ if(role==='Agent')return db.customers.filter(c=>c.assignedTo===pcActiveUser);
+ if(role==='Employee')return db.customers.filter(c=>c.assignedEmployee===pcActiveUser||c.assignedTo===pcActiveUser);
+ return [];
+}
+function pcCustomerIds(){return new Set(pcVisibleCustomers().map(c=>Number(c.id)))}
+function pcRefreshIdentity(){
+ const role=$('role').value, users=pcTeamFor(role);
+ if(!users.some(u=>u.name===pcActiveUser))pcActiveUser=users[0]?.name||(role==='Owner'?'Vipin Gupta':'');
+ let s=$('pcCurrentUser');
+ if(!s){s=document.createElement('select');s.id='pcCurrentUser';s.className='role';$('role').after(s)}
+ s.innerHTML=users.map(u=>'<option value="'+esc(u.name)+'">'+esc(u.name)+'</option>').join('');
+ s.value=pcActiveUser;
+ s.onchange=()=>{pcActiveUser=s.value;render()};
+ const label=document.querySelector('.username');if(label)label.innerHTML=esc(pcActiveUser||'Select user')+'<br><small style="color:#8290a4">'+esc(role)+'</small>';
+}
+const pcOldRoleChange=$('role').onchange;
+$('role').addEventListener('change',()=>{pcRefreshIdentity();render()});
+pcRefreshIdentity();
+const pcOldGoAdd=goAdd;
+goAdd=function(kind,customerId=null){
+ pcOldGoAdd(kind,customerId);
+ if(kind!=='customers')return;
+ const field=$('f_assignedTo')?.closest('.field');if(!field)return;
+ const actor=$('role').value, team=db.team||[], rms=pcTeamFor('RM'), agents=pcTeamFor('Agent');
+ const emp=pcTeamFor('Employee');
+ field.innerHTML='<label>Assign customer to</label><select id="pcAssignType"><option value="">Select type</option>'+(actor==='Owner'||actor==='Employee'?'<option value="RM">RM</option>':'')+'<option value="Agent">Agent</option>'+(actor==='Owner'||actor==='Employee'?'<option value="Employee">Employee</option>':'')+'</select><div id="pcAssignFields" style="margin-top:10px"></div><input id="f_assignedTo" type="hidden"><input id="f_assignedRM" type="hidden"><small class="sub">RM assignment ke liye us RM ka Agent select karna zaroori hai.</small>';
+ const type=$('pcAssignType'),box=$('pcAssignFields'),safe=esc;
+ type.onchange=()=>{
+  box.innerHTML='';$('f_assignedTo').value='';$('f_assignedRM').value='';
+  if(type.value==='RM'){
+   const rmOptions=rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
+   box.innerHTML='<label>Select RM</label><select id="pcRM"><option value="">Select RM</option>'+rmOptions+'</select><div style="margin-top:8px"><label>Select Agent (required)</label><select id="pcAgent" disabled><option value="">First select RM</option></select></div>';
+   $('pcRM').onchange=()=>{
+    const rm=$('pcRM').value, list=pcAgentsForRM(rm), a=$('pcAgent');
+    a.disabled=!rm;a.innerHTML='<option value="">Select Agent</option>'+list.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
+    $('f_assignedRM').value=rm;$('f_assignedTo').value='';
+    if(rm&&!list.length)box.insertAdjacentHTML('beforeend','<small class="sub" style="color:#b45309">Is RM ke saath abhi koi Agent mapped nahi hai. Pehle Team mein Agent ka Reporting RM set karein.</small>');
+   };
+   $('pcAgent').onchange=()=>{$('f_assignedTo').value=$('pcAgent').value};
+  }else if(type.value==='Agent'){
+   let list=agents;
+   if(actor==='RM')list=pcAgentsForRM(pcActiveUser);
+   if(actor==='Employee'){
+    const rm=$('pcRMForAgent')?.value;
+    list=rm?pcAgentsForRM(rm):agents;
+   }
+   if(actor==='Owner'||actor==='Employee'){
+    box.innerHTML='<label>Reporting RM</label><select id="pcRMForAgent"><option value="">Select RM</option>'+rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select><div style="margin-top:8px"><label>Select Agent</label><select id="pcAgent" disabled><option value="">First select RM</option></select></div>';
+    $('pcRMForAgent').onchange=()=>{const rm=$('pcRMForAgent').value,a=$('pcAgent'),ls=pcAgentsForRM(rm);a.disabled=!rm;a.innerHTML='<option value="">Select Agent</option>'+ls.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');$('f_assignedRM').value=rm;$('f_assignedTo').value=''};
+    $('pcAgent').onchange=()=>{$('f_assignedTo').value=$('pcAgent').value};
+   }else{
+    box.innerHTML='<label>Select your Agent</label><select id="pcAgent"><option value="">Select Agent</option>'+list.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select>';
+    $('f_assignedRM').value=pcActiveUser;$('pcAgent').onchange=()=>{$('f_assignedTo').value=$('pcAgent').value};
+   }
+  }else if(type.value==='Employee'){
+   box.innerHTML='<label>Select Employee</label><select id="pcEmployee"><option value="">Select Employee</option>'+emp.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select>';
+   $('pcEmployee').onchange=()=>{$('f_assignedTo').value=$('pcEmployee').value};
+  }
+ };
+};
+const pcOldSave=saveForm;
+saveForm=function(k){
+ if(k!=='customers')return pcOldSave(k);
+ const assign=$('f_assignedTo')?.value||'',rm=$('f_assignedRM')?.value||'',type=$('pcAssignType')?.value||'';
+ if(!type||!assign)return alert('Assignment complete karein. RM choose karne par RM ka Agent select karna mandatory hai.');
+ const val=id=>$('f_'+id)?.value.trim()||'';
+ const obj={id:Date.now(),name:val('name'),mobile:val('mobile'),email:val('email'),city:val('city'),assignedTo:assign,assignedRole:type,assignedRM:rm||(type==='Agent'&&$('role').value==='RM'?pcActiveUser:''),assignedEmployee:type==='Employee'?assign:'',createdBy:pcActiveUser,vehicles:[],kyc:[]};
+ if(!obj.name)return alert('Please enter customer name.');
+ db.customers.push(obj);persist();closeModal();render();
+};
+const pcRenderScopeBase=render;
+render=function(){
+ pcRenderScopeBase();
+ const role=$('role').value,ids=pcCustomerIds();
+ if(role==='Owner')return;
+ if(page==='customers'){
+  const rows=$('view').querySelectorAll('tbody tr');
+  rows.forEach(tr=>{const b=tr.querySelector('button[onclick^="customerDetail("]');const m=b?.getAttribute('onclick')?.match(/customerDetail\((\d+)\)/);if(m&&!ids.has(Number(m[1])))tr.remove()});
+ }
+ if(['vehicles','policies','renewals'].includes(page)){
+  const allowedVehicles=new Set(db.vehicles.filter(v=>ids.has(Number(v.customer))).map(v=>Number(v.id)));
+  const tables=$('view').querySelectorAll('tbody tr');
+  tables.forEach(tr=>{
+   const text=tr.textContent||'';
+   let keep=false;
+   if(page==='vehicles'){keep=db.vehicles.some(v=>allowedVehicles.has(Number(v.id))&&text.includes(v.reg||'___'))}
+   else {keep=db.policies.some(p=>{const customer=db.customers.find(c=>ids.has(Number(c.id))&&c.name===p.customer);return !!customer&&(text.includes(p.number||'___')||text.includes(p.vehicle||'___'))})}
+   if(!keep)tr.remove();
+  });
+ }
+ if(page==='customerProfile'&&selectedCustomer&&!ids.has(Number(selectedCustomer.id))){page='customers';selectedCustomer=null;render();return}
+};
+
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
 </script></body></html>
