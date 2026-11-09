@@ -164,7 +164,7 @@ function renderCustomerProfile(){
  '<div class="fieldgrid kyc-upload-row"><div class="field"><label>Document Type</label><select id="kyctype"><option>Aadhaar</option><option>PAN</option><option>Address Proof</option><option>Photo</option><option>Other</option></select></div><div class="field"><label>Select Document</label><input id="kycfile" type="file" accept="image/*,.pdf"></div></div><button class="btn primary" onclick="addKyc()">Upload KYC</button><div class="kyc-gallery">'+
  (docs.length?docs.map((d,i)=>'<article class="kyc-card"><div class="kyc-card-top"><b>'+esc(d.type)+'</b><span class="sub">'+esc(d.name)+'</span></div>'+(d.data?(d.data.startsWith('data:image/')?'<a href="'+d.data+'" target="_blank"><img class="kyc-thumb" src="'+d.data+'" alt="'+esc(d.name)+'"></a>':'<div class="kyc-file-icon">PDF</div>'):'<div class="sub">Preview unavailable for older upload</div>')+'<a class="btn" href="'+(d.data||'#')+'" download="'+esc(d.name)+'" '+(!d.data?'aria-disabled="true" onclick="return false"':'')+'>↓ Download</a></article>').join(''):'<div class="empty">No KYC documents uploaded yet.</div>')+'</div></section>'+
  '<section class="panel"><div class="profile-section-head"><div><h3>Vehicles</h3><p class="sub">Add and manage all vehicles linked to this customer.</p></div><button class="btn primary" onclick="addCustomerVehicle('+c.id+')">+ Add Vehicle</button></div>'+
- (vehicles.length?'<div class="customer-vehicle-list">'+vehicles.map((v,i)=>'<article class="customer-vehicle-row"><div class="vehicle-index">'+(i+1)+'</div><div class="vehicle-main"><b>'+esc(v.reg||'Registration pending')+'</b><div class="sub">'+esc([v.year,v.make,v.model,v.type].filter(Boolean).join(' · '))+'</div><div class="sub">'+esc(v.insurer||'Insurer not added')+(v.policy?' · '+esc(v.policy):'')+(v.expiry?' · Expiry '+esc(v.expiry):'')+'</div></div><span class="pill">'+esc(v.fuel||'Vehicle')+'</span></article>').join('')+'</div>':'<div class="empty">No vehicles added. Click “Add Vehicle” to register the first vehicle.</div>')+'</section></div>';
+ (vehicles.length?'<div class="customer-vehicle-list">'+vehicles.map((v,i)=>'<article class="customer-vehicle-row"><div class="vehicle-index">'+(i+1)+'</div><div class="vehicle-main"><b>'+esc(v.reg||'Registration pending')+'</b><div class="sub">'+esc([v.year,v.make,v.model,v.type].filter(Boolean).join(' · '))+'</div><div class="sub">'+esc(v.insurer||'Insurer not added')+(v.policy?' · '+esc(v.policy):'')+(v.expiry?' · Expiry '+esc(v.expiry):'')+'</div><div class="sub">Policy status: '+esc(v.policyStatus||'No policy uploaded')+'</div></div><button class="btn" onclick="viewCustomerVehicle('+v.id+')">View Vehicle</button></article>').join('')+'</div>':'<div class="empty">No vehicles added. Click “Add Vehicle” to register the first vehicle.</div>')+'</section></div>';
 }
 function backToCustomers(){page='customers';render()}
 function addCustomerVehicle(customerId){
@@ -274,6 +274,42 @@ function saveCampaignEdit(id){
  else finish();
 }
 function deleteCampaign(id){if($('role').value!=='Owner')return;if(!confirm('Delete this campaign banner?'))return;db.campaigns=db.campaigns.filter(b=>b.id!==id);persist();render()}
+
+
+let selectedVehicleId=null;
+function viewCustomerVehicle(id){const v=db.vehicles.find(x=>Number(x.id)===Number(id));if(!v)return;selectedVehicleId=v.id;page='vehicleDetail';render();}
+function renderVehicleDetail(){
+ const v=db.vehicles.find(x=>Number(x.id)===Number(selectedVehicleId));if(!v){page='customers';render();return}
+ const c=db.customers.find(x=>Number(x.id)===Number(v.customer)),p=v.policySubmission||null,isOwner=$('role').value==='Owner';
+ $('view').innerHTML=heading('Vehicle Details · '+esc(v.reg||''),'Customer: '+esc(c?.name||''),'<button class="btn" onclick="customerDetail('+v.customer+')">← Back to Customer</button>')+
+ '<div class="cols"><section class="panel"><h3>Vehicle Information</h3><div class="fieldgrid">'+[['Type',v.type],['Make',v.make],['Model / Variant',v.model],['Year',v.year],['Fuel',v.fuel],['Registration Date',v.regdate],['Chassis No.',v.chassis],['Engine No.',v.engine]].map(([k,val])=>'<div><small class="sub">'+k+'</small><div><b>'+esc(val||'—')+'</b></div></div>').join('')+'</div></section>'+
+ '<section class="panel"><h3>Policy Upload & Verification</h3><p class="sub">Upload the issued policy document. Owner/Admin approval is required before it becomes final.</p>'+
+ (p?'<div class="panel" style="background:#f8fbff;margin:12px 0"><b>'+esc(p.number||'Policy document')+'</b><div class="sub">'+esc(p.insurer||'')+' · '+esc(p.start||'')+' to '+esc(p.expiry||'')+'</div><p><span class="pill '+(p.status==='Approved'?'':'orange')+'">'+esc(p.status)+'</span></p>'+(p.data?'<a class="btn" href="'+p.data+'" download="'+esc(p.fileName||'policy-document')+'">↓ Download Policy</a>':'')+(isOwner&&p.status==='Pending Verification'?'<button class="btn teal" style="margin-left:8px" onclick="approveVehiclePolicy('+v.id+')">Final Approve</button><button class="btn danger" style="margin-left:8px" onclick="rejectVehiclePolicy('+v.id+')">Reject</button>':'')+'</div>':'<div class="empty">No policy document submitted yet.</div>')+
+ '<h3 style="margin-top:18px">Submit / Replace Policy</h3><div class="fieldgrid">'+[['Insurer','insurer','text'],['Policy Number','number','text'],['Policy Type','type','text'],['Policy Start Date','start','date'],['Policy End / Expiry Date','expiry','date'],['Premium (₹)','premium','number']].map(([l,k,t])=>'<div class="field"><label>'+l+'</label><input id="vp_'+k+'" type="'+t+'" value="'+esc((p&&p[k])||'')+'"></div>').join('')+'<div class="field"><label>Policy PDF / Image</label><input id="vp_file" type="file" accept="application/pdf,image/*"></div></div><p style="text-align:right;margin-top:15px"><button class="btn primary" onclick="submitVehiclePolicy('+v.id+')">Upload for Owner Verification</button></p></section></div>';
+}
+function submitVehiclePolicy(id){
+ const v=db.vehicles.find(x=>Number(x.id)===Number(id));if(!v)return;const f=$('vp_file')?.files[0];if(!f)return alert('Please select the issued policy PDF or image.');
+ if(f.size>4*1024*1024)return alert('Please select a file smaller than 4 MB in this browser demo.');
+ const val=k=>$('vp_'+k)?.value.trim()||'';if(!val('number')||!val('insurer')||!val('expiry'))return alert('Enter insurer, policy number and expiry date.');
+ const reader=new FileReader();reader.onload=()=>{v.policySubmission={number:val('number'),insurer:val('insurer'),type:val('type'),start:val('start'),expiry:val('expiry'),premium:val('premium'),fileName:f.name,data:reader.result,status:'Pending Verification',submittedAt:new Date().toISOString()};v.policyStatus='Pending Verification';persist();alert('Policy uploaded. Pending Owner/Admin verification.');renderVehicleDetail()};reader.onerror=()=>alert('Could not read policy file.');reader.readAsDataURL(f);
+}
+function approveVehiclePolicy(id){
+ if($('role').value!=='Owner')return alert('Only Owner/Admin can give final approval.');
+ const v=db.vehicles.find(x=>Number(x.id)===Number(id));if(!v||!v.policySubmission)return;const p=v.policySubmission;
+ p.status='Approved';p.approvedAt=new Date().toISOString();v.policy=p.number;v.insurer=p.insurer;v.expiry=p.expiry;v.policyStatus='Approved';
+ if(!db.policies.some(x=>x.number===p.number))db.policies.push({id:Date.now(),number:p.number,customer:db.customers.find(c=>c.id===v.customer)?.name||'',vehicle:v.reg,insurer:p.insurer,type:p.type||'Motor',premium:p.premium||'',expiry:p.expiry,status:'Approved'});
+ persist();alert('Policy finally approved and added to Policy Register.');render();
+}
+function rejectVehiclePolicy(id){if($('role').value!=='Owner')return alert('Only Owner/Admin can reject a policy.');const v=db.vehicles.find(x=>Number(x.id)===Number(id));if(!v||!v.policySubmission)return;v.policySubmission.status='Rejected';v.policyStatus='Rejected';persist();alert('Policy submission rejected.');renderVehicleDetail();}
+const renderBeforeVehicleApproval=render;
+render=function(){
+ if(page==='vehicleDetail'){renderVehicleDetail();document.querySelectorAll('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page==='customers'));return}
+ renderBeforeVehicleApproval();
+ if(page==='policies'&&$('role').value==='Owner'){
+  const pending=db.vehicles.filter(v=>v.policySubmission&&v.policySubmission.status==='Pending Verification');
+  if(pending.length)$('view').innerHTML+='<section class="panel" style="margin-top:18px"><h3>Pending Policy Verification</h3><p class="sub">Only Owner/Admin can approve issued policy documents.</p>'+pending.map(v=>'<div class="customer-vehicle-row"><div class="vehicle-main"><b>'+esc(v.reg)+'</b><div class="sub">'+esc(v.policySubmission.number)+' · '+esc(v.policySubmission.insurer)+' · '+esc(db.customers.find(c=>c.id===v.customer)?.name||'')+'</div></div><button class="btn" onclick="viewCustomerVehicle('+v.id+')">Review</button></div>').join('')+'</section>';
+ }
+};
 
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
 </script></body></html>
