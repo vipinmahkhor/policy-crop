@@ -357,9 +357,8 @@ saveForm=function(k){
  const val=id=>$('f_'+id)?.value.trim()||'';
  const name=val('name');if(!name)return alert('Please enter customer name.');
  const role=$('role').value;
- let assignedTo='';
- if(role==='Owner'){assignedTo=val('assignedTo');if(!assignedTo)return alert('Please select the Agent, RM or Employee responsible for this customer.');}
- else assignedTo='Vipin Gupta ('+role+')';
+ let assignedTo=val('assignedTo');
+ if(!assignedTo)return alert('Please select the Agent, RM or Employee responsible for this customer.');
  const obj={id:Date.now(),name,mobile:val('mobile'),email:val('email'),city:val('city'),assignedTo,createdBy:'Vipin Gupta ('+role+')',vehicles:[],kyc:[]};
  db.customers.push(obj);persist();closeModal();render();
 };
