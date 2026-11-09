@@ -562,13 +562,12 @@ render=function(){
   const agentOptions=activeAgents.map(x=>'<option value="'+pcEsc(x.name)+'">'+pcEsc(x.name)+'</option>').join('');
   return '<section class="panel" style="margin-bottom:18px"><h3>Team Member Onboarding</h3><p class="sub">Owner Agent, Employee aur RM onboard kar sakta hai. Employee Agent/RM request bhej sakta hai. RM sirf apne under Agent request bhej sakta hai. Approval ke baad hi member active hoga.</p>'+
   '<form id="pcTeamOnboardForm" class="fieldgrid" style="margin-top:16px">'+
-  (isOwner?'<div class="field"><label>Whom to Onboard *</label><select name="memberRole" id="pcMemberRole" required>'+roleOptions+'</select></div>':'<input type="hidden" name="memberRole" value="'+(isRM?'Agent':'')+'">')+
+  ((isOwner||isEmployee)?'<div class="field"><label>Whom to Onboard *</label><select name="memberRole" id="pcMemberRole" required>'+roleOptions+'</select></div>':'<input type="hidden" name="memberRole" value="Agent">')+
   '<div class="field"><label>Full Name *</label><input name="name" required></div>'+
   '<div class="field"><label>Mobile *</label><input name="mobile" required inputmode="numeric"></div>'+
   '<div class="field"><label>Email</label><input name="email" type="email"></div>'+
   '<div class="field"><label>Address</label><input name="address"></div>'+
   '<div class="field" id="pcReportingRMField"><label>Reporting RM *</label><select name="rm" id="pcReportingRM"><option value="">Select RM</option>'+(isRM?'<option value="'+pcEsc(pcActiveUser)+'" selected>'+pcEsc(pcActiveUser)+'</option>':rmOptions)+'</select></div>'+
-  '<div class="field" id="pcAssignAgentField" style="display:none"><label>Assign Agent *</label><select name="agent" id="pcAssignAgent"><option value="">Select Agent</option>'+agentOptions+'</select></div>'+
   '<div class="field"><label>Member Photo *</label><input name="photo" type="file" accept="image/*" required></div>'+
   '<div class="field"><label>Aadhaar / KYC Document *</label><input name="kyc" type="file" accept="image/*,.pdf" required></div>'+
   '<div class="field"><label>PAN Document</label><input name="pan" type="file" accept="image/*,.pdf"></div>'+
@@ -594,14 +593,12 @@ render=function(){
   html+='</tbody></table></div></section>';
   $('view').innerHTML=html;
   const form=$('pcTeamOnboardForm');if(!form)return;
-  const roleSelect=$('pcMemberRole'),rmField=$('pcReportingRMField'),rmSelect=$('pcReportingRM'),agentField=$('pcAssignAgentField'),agentSelect=$('pcAssignAgent');
+  const roleSelect=$('pcMemberRole'),rmField=$('pcReportingRMField'),rmSelect=$('pcReportingRM');
   function syncFields(){
    const target=roleSelect?.value||(actor==='RM'?'Agent':'');
    const needsRM=target==='Agent'&&(actor==='Owner'||actor==='Employee');
    rmField.style.display=target==='Agent'?(needsRM?'block':'none'):'none';
    rmSelect.required=needsRM;
-   agentField.style.display=target==='RM'?'block':'none';
-   agentSelect.required=target==='RM';
    if(actor==='RM'){rmSelect.value=pcActiveUser;rmSelect.disabled=true;}
   }
   roleSelect?.addEventListener('change',syncFields);syncFields();
@@ -612,11 +609,10 @@ render=function(){
    if(actor==='Employee'&&!['Agent','RM'].includes(memberRole))return alert('Employee sirf Agent ya RM onboard kar sakta hai.');
    const rm=memberRole==='Agent'?(actor==='RM'?pcActiveUser:String(fd.get('rm')||'')):'';
    if(memberRole==='Agent'&&!rm)return alert('Agent ke liye Reporting RM select karna zaroori hai.');
-   if(memberRole==='RM'&&actor==='Owner'&& !String(fd.get('agent')||''))return alert('RM onboard karte waqt existing Agent assign karna zaroori hai?');
    const files={};
    for(const key of ['photo','kyc','pan']){const f=fd.get(key);if(f&&f.size){if(f.size>2*1024*1024)return alert('Each upload must be under 2 MB in this demo.');files[key]={name:f.name,type:f.type,data:await new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(f)})};}}
    if(!files.photo||!files.kyc)return alert('Photo aur KYC document required hain.');
-   const item={id:Date.now(),memberRole,name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||'').trim(),email:String(fd.get('email')||'').trim(),address:String(fd.get('address')||'').trim(),rm,assignedAgent:String(fd.get('agent')||''),holder:String(fd.get('holder')||'').trim(),bank:String(fd.get('bank')||'').trim(),account:String(fd.get('account')||'').trim(),ifsc:String(fd.get('ifsc')||'').trim(),files,status:'Pending Approval',requestedBy:pcActiveUser,requestedRole:actor,requestedAt:new Date().toISOString(),approvedBy:'',approvedAt:''};
+   const item={id:Date.now(),memberRole,name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||'').trim(),email:String(fd.get('email')||'').trim(),address:String(fd.get('address')||'').trim(),rm,holder:String(fd.get('holder')||'').trim(),bank:String(fd.get('bank')||'').trim(),account:String(fd.get('account')||'').trim(),ifsc:String(fd.get('ifsc')||'').trim(),files,status:'Pending Approval',requestedBy:pcActiveUser,requestedRole:actor,requestedAt:new Date().toISOString(),approvedBy:'',approvedAt:''};
    if(!item.name||!item.mobile||!item.holder||!item.bank||!item.account||!item.ifsc)return alert('Please complete all required fields.');
    if(actor==='Owner'){item.status='Approved';item.approvedBy=pcActiveUser+' (Owner)';item.approvedAt=new Date().toISOString();pcActivateMember(item);}
    db.onboarding.push(item);persist();alert(actor==='Owner'?'Member onboarded and activated successfully.':'Request submitted. Owner/Employee approval pending.');pcOnboardRender();
