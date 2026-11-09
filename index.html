@@ -639,5 +639,87 @@ render=function(){
  render=function(){pcAddOnboardingNav();if(page==='onboarding'){pcOnboardRender();document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='pcOnboardNav'));return;}originalRender();};
  pcAddOnboardingNav();
 })();
+
+/* Owner controls: team profile modification/resignation and customer edit/delete */
+(function(){
+ const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ window.pcEditCustomer=id=>{
+  if($('role').value!=='Owner')return alert('Only Owner can modify customer details.');
+  const c=db.customers.find(x=>Number(x.id)===Number(id));if(!c)return;
+  $('modalTitle').textContent='Modify Customer Details';
+  $('modalBody').innerHTML='<div class="fieldgrid">'+[['Customer Name','name'],['Mobile','mobile'],['Email','email'],['City / Address','city']].map(([l,k])=>'<div class="field"><label>'+l+'</label><input id="pcEdit_'+k+'" value="'+e(c[k]||'')+'"></div>').join('')+'</div><p class="sub">Customer assignment and linked vehicles/policies will remain unchanged.</p><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcSaveCustomer('+c.id+')">Save Changes</button></p>';
+  openModal();
+ };
+ window.pcSaveCustomer=id=>{
+  const c=db.customers.find(x=>Number(x.id)===Number(id));if(!c)return;
+  for(const k of ['name','mobile','email','city'])c[k]=$('pcEdit_'+k).value.trim();
+  if(!c.name)return alert('Customer name is required.');
+  persist();closeModal();render();
+ };
+ window.pcDeleteCustomer=id=>{
+  if($('role').value!=='Owner')return alert('Only Owner can delete customers.');
+  const c=db.customers.find(x=>Number(x.id)===Number(id));if(!c)return;
+  if(!confirm('Delete '+c.name+' and its linked vehicle, policy, KYC and claim records? This cannot be undone.'))return;
+  const ids=new Set(db.vehicles.filter(v=>Number(v.customer)===Number(id)).map(v=>Number(v.id)));
+  db.customers=db.customers.filter(x=>Number(x.id)!==Number(id));
+  db.vehicles=db.vehicles.filter(v=>Number(v.customer)!==Number(id));
+  db.policies=db.policies.filter(p=>p.customer!==c.name&&!ids.has(Number(p.vehicleId)));
+  db.claims=db.claims.filter(x=>x.customer!==c.name);
+  db.documents=db.documents.filter(x=>x.customer!==c.name);
+  persist();selectedCustomer=null;page='customers';render();
+ };
+ window.pcEditTeam=id=>{
+  if($('role').value!=='Owner')return alert('Only Owner can modify team details.');
+  const t=db.team.find(x=>Number(x.id)===Number(id));if(!t)return;
+  const rms=(db.team||[]).filter(x=>x.role==='RM'&&x.status==='Active'&&x.id!==t.id);
+  $('modalTitle').textContent='Modify Team Member';
+  $('modalBody').innerHTML='<div class="fieldgrid"><div class="field"><label>Full Name</label><input id="pcT_name" value="'+e(t.name)+'"></div><div class="field"><label>Mobile</label><input id="pcT_mobile" value="'+e(t.mobile||'')+'"></div><div class="field"><label>Email</label><input id="pcT_email" value="'+e(t.email||'')+'"></div><div class="field"><label>Role</label><input value="'+e(t.role)+'" disabled></div>'+(t.role==='Agent'?'<div class="field"><label>Reporting RM</label><select id="pcT_rm"><option value="">Select RM</option>'+rms.map(x=>'<option value="'+e(x.name)+'" '+(x.name===(t.reportsTo||'')?'selected':'')+'>'+e(x.name)+'</option>').join('')+'</select></div>':'')+'</div><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcSaveTeam('+t.id+')">Save Changes</button></p>';
+  openModal();
+ };
+ window.pcSaveTeam=id=>{
+  const t=db.team.find(x=>Number(x.id)===Number(id));if(!t)return;
+  t.name=$('pcT_name').value.trim();t.mobile=$('pcT_mobile').value.trim();t.email=$('pcT_email').value.trim();
+  if(!t.name)return alert('Name is required.');
+  if(t.role==='Agent'){t.reportsTo=$('pcT_rm').value;if(!t.reportsTo)return alert('Agent ke liye Reporting RM select karein.');}
+  persist();closeModal();render();
+ };
+ window.pcResignTeam=id=>{
+  if($('role').value!=='Owner')return alert('Only Owner can process resignation.');
+  const t=db.team.find(x=>Number(x.id)===Number(id));if(!t||t.status!=='Active')return;
+  $('modalTitle').textContent='Team Member Resignation';
+  $('modalBody').innerHTML='<p><b>'+e(t.name)+'</b> · '+e(t.role)+'</p><div class="field"><label>Resignation Date *</label><input type="date" id="pcResignDate" value="'+new Date().toISOString().slice(0,10)+'"></div><div class="field" style="margin-top:12px"><label>Reason for Resignation *</label><textarea id="pcResignReason" rows="4" placeholder="Enter resignation reason"></textarea></div><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcConfirmResign('+t.id+')">Confirm Resignation</button></p>';
+  openModal();
+ };
+ window.pcConfirmResign=id=>{
+  const t=db.team.find(x=>Number(x.id)===Number(id));if(!t)return;
+  const reason=$('pcResignReason').value.trim(),date=$('pcResignDate').value;
+  if(!reason||!date)return alert('Resignation date aur reason dono required hain.');
+  t.status='Resigned';t.resignationReason=reason;t.resignationDate=date;t.resignedBy=pcActiveUser;t.resignedAt=new Date().toISOString();
+  db.onboarding=(db.onboarding||[]).map(o=>o.name===t.name&&o.memberRole===t.role?{...o,status:'Resigned',resignationReason:reason,resignationDate:date}:o);
+  persist();closeModal();alert('Resignation recorded. Member status is now Resigned.');render();
+ };
+ const oldRender=render;
+ render=function(){
+  oldRender();
+  if(page==='customers'&&$('role').value==='Owner'){
+   $('view').querySelectorAll('tbody tr').forEach(tr=>{
+    const b=tr.querySelector('button[onclick^="customerDetail("]');const m=b?.getAttribute('onclick')?.match(/customerDetail\((\d+)\)/);if(!m)return;
+    const id=Number(m[1]),cell=tr.lastElementChild;
+    cell.innerHTML='<button class="btn" onclick="customerDetail('+id+')">View details</button> <button class="btn" onclick="pcEditCustomer('+id+')">Modify</button> <button class="btn" style="color:#b42318" onclick="pcDeleteCustomer('+id+')">Delete</button>';
+   });
+   const note=document.createElement('p');note.className='sub';note.textContent='Modify/Delete actions are available to Owner only.';$('view').appendChild(note);
+  }
+  if(page==='onboarding'&&$('role').value==='Owner'){
+   const active=db.team.filter(t=>t.status!=='Resigned'),resigned=db.team.filter(t=>t.status==='Resigned');
+   const panels=$('view').querySelectorAll('.panel');const activePanel=panels[panels.length-1];
+   if(activePanel){
+    const rows=active.map(t=>'<tr><td>'+e(t.name)+'</td><td>'+e(t.role)+'</td><td>'+e(t.mobile||'—')+'</td><td>'+e(t.reportsTo||'—')+'</td><td>'+e(t.onboardedBy||'—')+'</td><td><span class="pill">Active</span></td><td><button class="btn" onclick="pcEditTeam('+t.id+')">Modify</button> <button class="btn" style="color:#b42318" onclick="pcResignTeam('+t.id+')">Resignation</button></td></tr>').join('');
+    activePanel.innerHTML='<h3>Active Team Members</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Onboarded By</th><th>Status</th><th>Action</th></tr></thead><tbody>'+(rows||'<tr><td colspan="7" class="empty">No active team members.</td></tr>')+'</tbody></table></div>';
+    if(resigned.length){const box=document.createElement('section');box.className='panel';box.style.marginTop='18px';box.innerHTML='<h3>Resigned Team Members</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Resignation Date</th><th>Reason</th><th>Recorded By</th></tr></thead><tbody>'+resigned.map(t=>'<tr><td>'+e(t.name)+'</td><td>'+e(t.role)+'</td><td>'+e(t.resignationDate||'—')+'</td><td>'+e(t.resignationReason||'—')+'</td><td>'+e(t.resignedBy||'—')+'</td></tr>').join('')+'</tbody></table></div>';$('view').appendChild(box);}
+   }
+  }
+ };
+})();
+
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
 </script></body></html>
