@@ -383,5 +383,63 @@ render=function(){
  }
 };
 
+
+/* Cascading customer assignment: Owner / RM / Employee */
+const pcGoAddCascade=goAdd;
+goAdd=function(kind,customerId=null){
+ pcGoAddCascade(kind,customerId);
+ if(kind!=='customers')return;
+ const actor=$('role').value;
+ const field=$('f_assignedTo')?.closest('.field');
+ if(!field)return;
+ field.innerHTML='<label>Assign Customer To</label><select id="f_assignRole"><option value="">Select assignment type</option></select><div id="assignCascade" style="margin-top:10px"></div><input type="hidden" id="f_assignedTo"><small class="sub">Select the responsible RM or Agent. Assignment options depend on your role.</small>';
+ const roleSel=$('f_assignRole');
+ const addOpt=(v,t)=>roleSel.add(new Option(t,v));
+ if(actor==='Owner'){addOpt('RM','RM');addOpt('Agent','Agent')}
+ else if(actor==='RM'){addOpt('Agent','Agent')}
+ else if(actor==='Employee'){addOpt('RM','RM');addOpt('Agent','Agent')}
+ else {addOpt('Agent','Agent')}
+ const team=(db.team||[]);
+ const rms=team.filter(x=>x.role==='RM');
+ const agents=team.filter(x=>x.role==='Agent');
+ const cascade=$('assignCascade');
+ const safe=x=>String(x||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+ roleSel.onchange=()=>{
+  cascade.innerHTML='';$('f_assignedTo').value='';
+  const selected=roleSel.value;
+  if(!selected)return;
+  if(selected==='RM'){
+   cascade.innerHTML='<label>Select RM</label><select id="f_pickRM"><option value="">Select RM</option>'+rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select>';
+   $('f_pickRM').onchange=()=>{$('f_assignedTo').value=$('f_pickRM').value;};
+  }else if(actor==='RM'){
+   const currentRM=rms[0]?.name||'';
+   let list=agents.filter(x=>(x.reportsTo||x.manager||x.rm||'')===currentRM);
+   if(!list.length)list=agents;
+   cascade.innerHTML='<label>Select Agent</label><select id="f_pickAgent"><option value="">Select Agent</option>'+list.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select>';
+   $('f_pickAgent').onchange=()=>{$('f_assignedTo').value=$('f_pickAgent').value;};
+  }else{
+   cascade.innerHTML='<label>Select RM</label><select id="f_pickRM"><option value="">Select RM</option>'+rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select><div style="margin-top:9px"><label>Select Agent</label><select id="f_pickAgent" disabled><option value="">First select RM</option></select></div>';
+   $('f_pickRM').onchange=()=>{
+    const rm=$('f_pickRM').value;
+    let list=agents.filter(x=>(x.reportsTo||x.manager||x.rm||'')===rm);
+    if(!list.length)list=agents;
+    const a=$('f_pickAgent');a.disabled=!rm;a.innerHTML='<option value="">Select Agent</option>'+list.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
+    $('f_assignedTo').value=rm;
+   };
+   $('f_pickAgent').onchange=()=>{$('f_assignedTo').value=$('f_pickAgent').value||$('f_pickRM').value;};
+  }
+ };
+};
+const pcSaveCascade=saveForm;
+saveForm=function(k){
+ if(k==='customers'&&!$('f_assignedTo')?.value){alert('Please complete the RM / Agent assignment selection.');return;}
+ if(k==='customers'){
+  const oldPush=db.customers.push.bind(db.customers);
+  db.customers.push=function(obj){obj.assignedRole=$('f_assignRole')?.value||'';return oldPush(obj)};
+  try{return pcSaveCascade(k)}finally{db.customers.push=oldPush}
+ }
+ return pcSaveCascade(k);
+};
+
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
 </script></body></html>
