@@ -90,6 +90,19 @@ body{background:linear-gradient(135deg,#f5f8fd 0%,#eef3fa 100%);font-family:Inte
 .dash-banner .dash-banner-caption{padding:18px 10px 7px;font-size:10px}
 .dash-banner .dash-banner-caption p{font-size:9px;margin:2px 0 0}
 .campaign-admin-row>div:first-child>img{width:125px;height:65px;object-fit:contain;background:#f3f6fb;border-radius:7px}
+/* Dashboard ad is confined to a compact right-hand corner, like PBP */
+.dashboard-promo-corner{display:flex;justify-content:flex-end;align-items:flex-start;width:100%;margin:0 0 18px;min-height:0}
+.dashboard-promo-stack{position:relative;width:530px;max-width:100%;flex:0 1 530px}
+#campaignSlider.dash-banner{position:relative;width:100%;height:auto;aspect-ratio:618/320;min-height:0;margin:0;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 5px 18px #10213f18}
+#campaignSlider .banner-slide{display:none;position:absolute;inset:0;width:100%;height:100%;min-height:0}
+#campaignSlider .banner-slide.active{display:block}
+#campaignSlider .banner-slide img{display:block;width:100%;height:100%;max-height:none;object-fit:contain;background:#fff}
+#campaignSlider .dash-banner-caption{position:absolute;left:0;right:0;bottom:0;padding:22px 12px 9px;background:linear-gradient(0deg,#061a35c9,transparent);font-size:12px}
+#campaignSlider .dash-banner-caption p{font-size:11px;margin:3px 0 0}
+.banner-manage{display:none}
+.manage-banner-mini{display:block;margin:7px 0 0 auto;font-size:11px;padding:6px 12px}
+.banner-owner-link{width:530px;max-width:100%;margin-left:auto;display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border:1px solid #e4eaf3;border-radius:10px}
+@media(max-width:700px){.dashboard-promo-stack,.banner-owner-link{width:min(100%,530px)}.dashboard-promo-corner{justify-content:center}}
 </style></head><body><div class="app">
 <aside class="sidebar"><div class="brand"><span class="brand-mark">🛡</span> PolicyCrop</div><div class="nav" id="nav">
 <div class="group">OVERVIEW</div><button data-page="dashboard" class="active"><span class="ico">▦</span>Dashboard</button>
@@ -150,9 +163,8 @@ function dashboardBanner(){
  const banners=(db.campaigns||[]).filter(b=>(b.image||(b.images||[]).length)&&(!b.audience||!b.audience.length||b.audience.includes(role))&&(!b.start||b.start<=today)&&(!b.end&&!b.valid||((b.end||b.valid)>=today))).flatMap(b=>(b.images&&b.images.length?b.images:[b.image]).filter(Boolean).map((src,i)=>({...b,image:src,_slide:i})));
  let html=supportStrip();
  if(banners.length){
-  html+='<div class="dash-banner" id="campaignSlider">'+banners.map((b,i)=>'<div class="banner-slide '+(i===0?'active':'')+'"><img src="'+b.image+'" alt="'+esc(b.title||'Campaign')+'"><div class="dash-banner-caption" style="color:'+esc(b.textColor||'#ffffff')+'"><b>'+esc(b.title||'')+'</b>'+(b.message?'<p>'+esc(b.message)+'</p>':'')+'</div></div>').join('')+(banners.length>1?'<div class="banner-dots">'+banners.map((b,i)=>'<button class="'+(i===0?'active':'')+'" aria-label="Banner '+(i+1)+'" onclick="showCampaignSlide('+i+')"></button>').join('')+'</div>':'')+'</div>';
- }
- if(role==='Owner')html+='<div class="banner-manage"><div><b>Dashboard Banner</b><div class="sub">Compact rotating promotions and support contact shown to selected users.</div></div><button class="btn primary" onclick="navigate(\'campaigns\')">Manage Banners</button></div>';
+  html+='<div class="dashboard-promo-corner"><div class="dashboard-promo-stack"><div class="dash-banner" id="campaignSlider">'+banners.map((b,i)=>'<div class="banner-slide '+(i===0?'active':'')+'"><img src="'+b.image+'" alt="'+esc(b.title||'Campaign')+'"><div class="dash-banner-caption" style="color:'+esc(b.textColor||'#ffffff')+'"><b>'+esc(b.title||'')+'</b>'+(b.message?'<p>'+esc(b.message)+'</p>':'')+'</div></div>').join('')+(banners.length>1?'<div class="banner-dots">'+banners.map((b,i)=>'<button class="'+(i===0?'active':'')+'" aria-label="Banner '+(i+1)+'" onclick="showCampaignSlide('+i+')"></button>').join('')+'</div>':'')+'</div>'+(role==='Owner'?'<button class="btn manage-banner-mini" onclick="navigate(\'campaigns\')">Manage Banners</button>':'')+'</div></div>';
+ }else if(role==='Owner'){html+='<div class="dashboard-promo-corner"><div class="banner-owner-link"><b>Dashboard Banner</b><button class="btn primary" onclick="navigate(\'campaigns\')">Manage Banners</button></div></div>'}
  if(bannerSlideTimer)clearInterval(bannerSlideTimer);
  if(banners.length>1)bannerSlideTimer=setInterval(()=>showCampaignSlide((bannerSlideIndex+1)%banners.length),4500);
  bannerSlideIndex=0;return html;
