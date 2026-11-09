@@ -428,9 +428,9 @@ const renderBeforeVehicleApproval=render;
 render=function(){
  if(page==='vehicleDetail'){renderVehicleDetail();document.querySelectorAll('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page==='customers'));return}
  renderBeforeVehicleApproval();
- if(page==='policies'&&$('role').value==='Owner'){
+ if(page==='policies'&&['Owner','Employee'].includes($('role').value)){
   const pending=db.vehicles.filter(v=>v.policySubmission&&v.policySubmission.status==='Pending Verification');
-  $('view').innerHTML+='<section class="panel" style="margin-top:18px"><h3>Policy Verification</h3><p class="sub">Owner/Admin verification queue. Approve or reject each submitted policy.</p>'+ (pending.length?'<div class="tablewrap"><table class="table"><thead><tr><th>Vehicle</th><th>Policy Number</th><th>Insurance Company</th><th>Customer</th><th>Status</th><th>Action</th></tr></thead><tbody>'+pending.map(v=>'<tr><td>'+esc(v.reg)+'</td><td>'+esc(v.policySubmission.number)+'</td><td>'+esc(v.policySubmission.insurer)+'</td><td>'+esc(db.customers.find(c=>c.id===v.customer)?.name||'')+'</td><td><span class="pill orange">Pending Verification</span></td><td><button class="btn" onclick="viewCustomerVehicle('+v.id+')">Review & Approve</button></td></tr>').join('')+'</tbody></table></div>':'<div class="empty">No policies waiting for verification.</div>')+'</section>';
+  $('view').innerHTML+='<section class="panel" style="margin-top:18px"><h3>Policy Verification</h3><p class="sub">Owner/Admin and Employee verification queue. Select broker/source, then approve or reject each submitted policy.</p>'+ (pending.length?'<div class="tablewrap"><table class="table"><thead><tr><th>Vehicle</th><th>Policy Number</th><th>Insurance Company</th><th>Customer</th><th>Status</th><th>Action</th></tr></thead><tbody>'+pending.map(v=>'<tr><td>'+esc(v.reg)+'</td><td>'+esc(v.policySubmission.number)+'</td><td>'+esc(v.policySubmission.insurer)+'</td><td>'+esc(db.customers.find(c=>c.id===v.customer)?.name||'')+'</td><td><span class="pill orange">Pending Verification</span></td><td><button class="btn" onclick="viewCustomerVehicle('+v.id+')">Review & Approve</button></td></tr>').join('')+'</tbody></table></div>':'<div class="empty">No policies waiting for verification.</div>')+'</section>';
  }
 };
 
