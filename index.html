@@ -115,14 +115,14 @@ body{background:linear-gradient(135deg,#f5f8fd 0%,#eef3fa 100%);font-family:Inte
 <div class="group">FINANCE</div><button data-page="commissions"><span class="ico">₹</span>Commission & Payouts</button><button data-page="collections"><span class="ico">⇩</span>Premium Collections</button><button data-page="settlements"><span class="ico">▤</span>Insurer Settlements</button>
 <div class="group">MANAGEMENT</div><button data-page="team"><span class="ico">♧</span>Team & Users</button><button data-page="campaigns"><span class="ico">▣</span>Campaign Banners</button><button data-page="reports"><span class="ico">▥</span>Reports</button><button data-page="settings"><span class="ico">⚙</span>Settings</button>
 </div></aside>
-<div class="main"><header class="top"><input class="search" id="globalSearch" placeholder="⌕  Search customer, mobile, policy, vehicle..."><div class="topright"><select class="role" id="role"><option>Owner</option><option>RM</option><option>Agent</option><option>Employee</option><option>Customer</option></select><span class="username" style="font-size:12px">Vipin Gupta (Demo)<br><small style="color:#8290a4">Owner</small></span><div class="avatar">V</div></div></header>
+<div class="main"><header class="top"><input class="search" id="globalSearch" placeholder="⌕  Search customer, mobile, policy, vehicle..."><div class="topright"><select class="role" id="role"><option>Owner</option><option>RM</option><option>Agent</option><option>Employee</option><option>Customer</option></select><select id="pcIdentity" class="role" aria-label="Select profile" style="max-width:155px"></select><button class="btn" onclick="pcOpenMyProfile()">My Profile</button><span class="username" style="font-size:12px">Vipin Gupta (Demo)<br><small style="color:#8290a4">Owner</small></span><div class="avatar">V</div></div></header>
 <main class="content"><div class="notice">⚠ DEMO MODE — Sample data is stored only in this browser. Do not upload real Aadhaar, PAN, RC, policy or customer documents until secure login, access controls and private cloud storage are configured.</div><div id="view"></div></main></div></div>
 <div class="modal" id="modal"><div class="modalbox"><div class="modalhead"><h2 id="modalTitle">Add record</h2><button class="btn" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
 <script>
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const seed={customers:[{id:1,name:'Amit Kumar',mobile:'9832711065',email:'amit.kumar@example.com',city:'Mumbai',kyc:[],vehicles:[1]},{id:2,name:'Rakesh Patel',mobile:'9876543210',email:'rakesh@example.com',city:'Jabalpur',kyc:[],vehicles:[2]},{id:3,name:'Neha Singh',mobile:'9123456780',email:'neha@example.com',city:'Rewa',kyc:[],vehicles:[]}],vehicles:[{id:1,customer:1,reg:'MP20AB1234',type:'Private Car',make:'Maruti Suzuki',model:'Swift',year:'2022',insurer:'HDFC ERGO',policy:'PC/2026/10003',expiry:'2026-11-11',idv:'550000'},{id:2,customer:2,reg:'MP17CD4567',type:'Goods Carrier',make:'Tata',model:'407',year:'2021',insurer:'ICICI Lombard',policy:'PC/2026/10004',expiry:'2026-11-14',idv:'850000'}],policies:[{id:1,number:'PC/2026/10003',customer:'Amit Kumar',vehicle:'MP20AB1234',insurer:'HDFC ERGO',type:'Comprehensive',premium:'12,500',expiry:'2026-11-11',status:'Active'},{id:2,number:'PC/2026/10004',customer:'Rakesh Patel',vehicle:'MP17CD4567',insurer:'ICICI Lombard',type:'Commercial Package',premium:'24,800',expiry:'2026-11-14',status:'Active'}],leads:[{id:1,name:'Suresh Yadav',mobile:'9898989898',source:'Referral',stage:'New',owner:'Vipin'},{id:2,name:'Pooja Verma',mobile:'9000011111',source:'Website',stage:'Contacted',owner:'Agent 1'},{id:3,name:'Manoj Tiwari',mobile:'9111122222',source:'Walk-in',stage:'Quoted',owner:'Vipin'}],claims:[{id:1,number:'CL/2026/001',customer:'Amit Kumar',vehicle:'MP20AB1234',insurer:'HDFC ERGO',status:'Survey Pending'}],tasks:[{id:1,title:'Call Amit Kumar for renewal',due:'Today',status:'Pending'},{id:2,title:'Collect RC copy - Rakesh Patel',due:'Tomorrow',status:'Pending'}],commissions:[{id:1,policy:'PC/2026/10003',insurer:'HDFC ERGO',premium:'12,500',commission:'1,250',status:'Pending'},{id:2,policy:'PC/2026/10004',insurer:'ICICI Lombard',premium:'24,800',commission:'2,480',status:'Received'}],campaigns:[],quotes:[],collections:[],settlements:[],team:[{name:'Vipin Gupta',role:'Owner',mobile:'-'},{name:'Agent 1',role:'Agent',mobile:'-'},{name:'RM 1',role:'RM',mobile:'-'}],documents:[]};
 let db;try{db=JSON.parse(localStorage.getItem('pc_full_demo'))||seed}catch(e){db=seed}
-const dataKeys=['customers','vehicles','policies','leads','claims','tasks','commissions','campaigns','quotes','collections','settlements','team','documents'];
+const dataKeys=['profileChangeRequests','customers','vehicles','policies','leads','claims','tasks','commissions','campaigns','quotes','collections','settlements','team','documents'];
 if(!db||typeof db!=='object')db=seed;
 dataKeys.forEach(k=>{if(!Array.isArray(db[k]))db[k]=Array.isArray(seed[k])?seed[k]:[]});
 db.customers.forEach(c=>{if(!Array.isArray(c.vehicles))c.vehicles=[];if(!Array.isArray(c.kyc))c.kyc=[]});
@@ -711,6 +711,71 @@ render=function(){
    }
   }
  };
+})();
+
+
+/* PolicyCrop self-service profiles + approval workflow (browser demo only) */
+(function(){
+ if(!Array.isArray(db.profileChangeRequests))db.profileChangeRequests=[];
+ let activeProfileName='Vipin Gupta';
+ const readFile=file=>new Promise(resolve=>{if(!file)return resolve('');const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>resolve('');r.readAsDataURL(file)});
+ function identityOptions(){
+  const r=$('role').value,sel=$('pcIdentity'),items=r==='Customer'?db.customers.map(x=>x.name):r==='Owner'?['Vipin Gupta']:db.team.filter(x=>x.role===r&&x.status!=='Resigned').map(x=>x.name);
+  if(!items.length&&r!=='Owner')items.push(r+' Demo');
+  if(r==='Owner'&&!items.length)items.push('Vipin Gupta');
+  if(!items.includes(activeProfileName))activeProfileName=items[0]||'';
+  sel.innerHTML=items.map(n=>'<option '+(n===activeProfileName?'selected':'')+'>'+esc(n)+'</option>').join('');
+  sel.style.display=items.length>1||r!=='Owner'?'':'none';
+  const u=$('.username');if(u)u.innerHTML=esc(activeProfileName||'User')+' (Demo)<br><small style="color:#8290a4">'+esc(r)+'</small>';
+ }
+ function current(){
+  const r=$('role').value,n=$('pcIdentity').value||activeProfileName;
+  if(r==='Customer')return {role:r,name:n,obj:db.customers.find(x=>x.name===n)};
+  if(r==='Owner')return {role:r,name:'Vipin Gupta',obj:{name:'Vipin Gupta',role:'Owner',...(db.ownerProfile||{})}};
+  return {role:r,name:n,obj:db.team.find(x=>x.name===n&&x.role===r)||{name:n,role:r}};
+ }
+ window.pcOpenMyProfile=()=>{identityOptions();page='myprofile';render()};
+ window.pcRenderMyProfile=function(){
+  const u=current();if(!u.obj)return;
+  const p=u.obj,bank=p.bankDetails||{};
+  const isCustomer=u.role==='Customer';
+  const pending=db.profileChangeRequests.filter(x=>x.name===u.name&&x.role===u.role&&x.status==='Pending Approval');
+  let html=heading('My Profile','View and update your personal information. Changes for team members require Owner/Employee approval.');
+  html+='<div class="panel"><div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">'+(p.photo?'<img src="'+p.photo+'" style="width:76px;height:76px;object-fit:cover;border-radius:50%">':'<div class="avatar" style="width:64px;height:64px">'+esc((u.name||'U').charAt(0))+'</div>')+'<div><h3>'+esc(u.name)+'</h3><div class="sub">'+esc(u.role)+'</div></div></div>';
+  html+='<form id="pcProfileForm"><div class="fieldgrid"><div class="field"><label>Full Name</label><input name="name" required value="'+esc(p.name||u.name)+'"></div><div class="field"><label>Mobile</label><input name="mobile" value="'+esc(p.mobile||'')+'"></div><div class="field"><label>Email</label><input name="email" type="email" value="'+esc(p.email||'')+'"></div><div class="field"><label>Address</label><input name="city" value="'+esc(p.city||p.address||'')+'"></div><div class="field"><label>Profile Photo</label><input name="photo" type="file" accept="image/*"></div></div>';
+  html+='<h3 style="margin-top:22px">Bank Details</h3><div class="fieldgrid"><div class="field"><label>Account Holder</label><input name="holder" value="'+esc(bank.holder||p.holder||'')+'"></div><div class="field"><label>Bank Name</label><input name="bank" value="'+esc(bank.bank||p.bank||'')+'"></div><div class="field"><label>Account Number</label><input name="account" value="'+esc(bank.account||p.account||'')+'"></div><div class="field"><label>IFSC</label><input name="ifsc" value="'+esc(bank.ifsc||p.ifsc||'')+'"></div></div>';
+  html+='<p class="sub">Bank details can be added initially. Any later bank-detail change will remain pending until approved. Team profile changes also require approval. Customers can update their own profile directly.</p><div style="text-align:right"><button class="btn primary" type="submit">Save / Submit for Approval</button></div></form></div>';
+  if(pending.length){html+='<div class="panel" style="margin-top:16px"><h3>My Pending Changes</h3>'+pending.map(x=>'<p>Submitted: '+esc(x.createdAt)+' · <span class="pill orange">Pending Approval</span></p>').join('')+'</div>'}
+  if(u.role==='Owner'||u.role==='Employee'){
+   const req=db.profileChangeRequests.filter(x=>x.status==='Pending Approval');
+   html+='<div class="panel" style="margin-top:16px"><h3>Profile Change Approval Queue</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody>'+(req.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.role)+'</td><td>'+esc(x.createdAt)+'</td><td><span class="pill orange">Pending Approval</span></td><td><button class="btn" onclick="pcViewProfileRequest('+x.id+')">Review</button> <button class="btn primary" onclick="pcApproveProfileRequest('+x.id+')">Approve</button> <button class="btn danger" onclick="pcRejectProfileRequest('+x.id+')">Reject</button></td></tr>').join('')||'<tr><td colspan="5" class="empty">No pending profile changes.</td></tr>')+'</tbody></table></div></div>';
+  }
+  $('view').innerHTML=html;
+  $('pcProfileForm').onsubmit=async ev=>{
+   ev.preventDefault();const fd=new FormData(ev.currentTarget),photo=await readFile(fd.get('photo'));
+   const oldBank=p.bankDetails||{holder:p.holder||'',bank:p.bank||'',account:p.account||'',ifsc:p.ifsc||''};
+   const newBank={holder:String(fd.get('holder')||''),bank:String(fd.get('bank')||''),account:String(fd.get('account')||''),ifsc:String(fd.get('ifsc')||'')};
+   const bankExists=!!(oldBank.account||oldBank.bank||oldBank.ifsc);
+   const changedBank=JSON.stringify(oldBank)!==JSON.stringify(newBank);
+   const changes={name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||''),email:String(fd.get('email')||''),address:String(fd.get('city')||''),bankDetails:newBank};
+   if(photo)changes.photo=photo;
+   if(isCustomer){Object.assign(p,{name:changes.name,mobile:changes.mobile,email:changes.email,city:changes.address,bankDetails:newBank});if(photo)p.photo=photo;persist();identityOptions();alert('Customer profile updated.');render();return}
+   const hasAny=!!(changes.name!==u.name||changes.mobile!==(p.mobile||'')||changes.email!==(p.email||'')||changes.address!==(p.address||p.city||'')||photo||changedBank);
+   if(!hasAny)return alert('Koi change nahi kiya gaya.');
+   if(!bankExists&&changedBank){p.bankDetails=newBank;delete changes.bankDetails; if(!Object.keys(changes).some(k=>k!=='bankDetails'&&changes[k]!==undefined)&&!photo){persist();alert('Initial bank details saved.');render();return}}
+   const id=Date.now();db.profileChangeRequests.push({id,name:u.name,role:u.role,changes,requestedBy:u.name,createdAt:new Date().toLocaleString(),status:'Pending Approval'});
+   persist();alert('Changes approval ke liye Owner aur Employee ko bhej diye gaye hain. Approval se pehle profile update nahi hogi.');render();
+  };
+ };
+ window.pcViewProfileRequest=id=>{const x=db.profileChangeRequests.find(a=>a.id===id);if(!x)return;alert('Requested changes:\n'+JSON.stringify(x.changes,null,2))};
+ window.pcApproveProfileRequest=id=>{if(!['Owner','Employee'].includes($('role').value))return alert('Only Owner/Employee can approve.');const x=db.profileChangeRequests.find(a=>a.id===id&&a.status==='Pending Approval');if(!x)return;let p=x.role==='Customer'?db.customers.find(a=>a.name===x.name):x.role==='Owner'?(db.ownerProfile||(db.ownerProfile={})):db.team.find(a=>a.name===x.name&&a.role===x.role);if(!p)return alert('Profile not found.');Object.assign(p,{name:x.changes.name||p.name,mobile:x.changes.mobile,email:x.changes.email,address:x.changes.address,city:x.changes.address,photo:x.changes.photo||p.photo});if(x.changes.bankDetails)p.bankDetails=x.changes.bankDetails;x.status='Approved';x.approvedBy=($('pcIdentity').value||'User')+' ('+$('role').value+')';x.approvedAt=new Date().toLocaleString();persist();alert('Profile changes approved.');render()};
+ window.pcRejectProfileRequest=id=>{const x=db.profileChangeRequests.find(a=>a.id===id&&a.status==='Pending Approval');if(!x)return;const reason=prompt('Rejection reason?');if(reason===null)return;x.status='Rejected';x.rejectionReason=reason;x.approvedBy=$('pcIdentity').value||'User';persist();render()};
+ const oldRender=render;
+ render=function(){if(page==='myprofile'){pcRenderMyProfile();return}oldRender()};
+ const oldRole=$('role').onchange;
+ $('role').addEventListener('change',()=>{activeProfileName='';identityOptions();});
+ $('pcIdentity').addEventListener('change',()=>{activeProfileName=$('pcIdentity').value;identityOptions();if(page==='myprofile')render()});
+ identityOptions();
 })();
 
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
