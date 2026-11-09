@@ -500,11 +500,11 @@ goAdd=function(kind,customerId=null){
  const field=$('f_assignedTo')?.closest('.field');if(!field)return;
  const actor=$('role').value, team=db.team||[], rms=pcTeamFor('RM'), agents=pcTeamFor('Agent');
  const emp=pcTeamFor('Employee');
- field.innerHTML='<label>Assign customer to</label><select id="pcAssignType"><option value="">Select type</option>'+(actor==='Owner'||actor==='Employee'?'<option value="RM">RM</option>':'')+'<option value="Agent">Agent</option>'+(actor==='Owner'||actor==='Employee'?'<option value="Employee">Employee</option>':'')+'</select><div id="pcAssignFields" style="margin-top:10px"></div><input id="f_assignedTo" type="hidden"><input id="f_assignedRM" type="hidden"><small class="sub">RM assignment ke liye us RM ka Agent select karna zaroori hai.</small>';
+ field.innerHTML='<label>Assign customer to</label><select id="pcAssignType"><option value="">Select type</option>'+(actor==='Owner'?'<option value="Direct">Direct Customer</option>':'')+(actor==='Owner'||actor==='Employee'?'<option value="RM">RM</option>':'')+'<option value="Agent">Agent</option></select><div id="pcAssignFields" style="margin-top:10px"></div><input id="f_assignedTo" type="hidden"><input id="f_assignedRM" type="hidden"><small class="sub">Direct Customer chunne par customer kisi RM ya Agent ko assign nahi hoga. RM chunne par us RM ka Agent select karein.</small>';
  const type=$('pcAssignType'),box=$('pcAssignFields'),safe=esc;
  type.onchange=()=>{
   box.innerHTML='';$('f_assignedTo').value='';$('f_assignedRM').value='';
-  if(type.value==='RM'){
+  if(type.value==='Direct'){\n   $('f_assignedTo').value='';$('f_assignedRM').value='';\n   box.innerHTML='<div class="sub">Customer directly Owner ke under save hoga.</div>';\n  }else if(type.value==='RM'){
    const rmOptions=rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
    box.innerHTML='<label>Select RM</label><select id="pcRM"><option value="">Select RM</option>'+rmOptions+'</select><div style="margin-top:8px"><label>Select Agent (required)</label><select id="pcAgent" disabled><option value="">First select RM</option></select></div>';
    $('pcRM').onchange=()=>{
@@ -541,7 +541,7 @@ saveForm=function(k){
  const assign=$('f_assignedTo')?.value||'',rm=$('f_assignedRM')?.value||'',type=$('pcAssignType')?.value||'';
  if(!type||!assign)return alert('Assignment complete karein. RM choose karne par RM ka Agent select karna mandatory hai.');
  const val=id=>$('f_'+id)?.value.trim()||'';
- const obj={id:Date.now(),name:val('name'),mobile:val('mobile'),email:val('email'),city:val('city'),assignedTo:assign,assignedRole:type,assignedRM:rm||(type==='Agent'&&$('role').value==='RM'?pcActiveUser:''),assignedEmployee:type==='Employee'?assign:'',createdBy:pcActiveUser,vehicles:[],kyc:[]};
+ const obj={id:Date.now(),name:val('name'),mobile:val('mobile'),email:val('email'),city:val('city'),assignedTo:assign,assignedRole:type,assignedRM:rm||(type==='Agent'&&$('role').value==='RM'?pcActiveUser:''),assignedEmployee:'',createdBy:pcActiveUser,vehicles:[],kyc:[]};
  if(!obj.name)return alert('Please enter customer name.');
  db.customers.push(obj);persist();closeModal();render();
 };
