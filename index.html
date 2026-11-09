@@ -1004,6 +1004,31 @@ render=function(){
  const oldGo=goAdd;goAdd=function(k,id=null){if(k==='quotes'){pcQuoteRequest();return}oldGo(k,id)};
 })();
 
+/* Universal list export tools: Excel, CSV, Word, PDF, JSON and text */
+(function(){
+ const exportStyle=document.createElement('style');
+ exportStyle.textContent='.pc-export-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:18px 0 8px;padding:13px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 3px 12px #10213f0a}.pc-export-tools strong{font-size:12px;color:var(--ink);margin-right:4px}.pc-export-tools .btn{font-size:12px;padding:9px 12px}.pc-export-note{font-size:10px;color:var(--muted);width:100%}@media(max-width:650px){.pc-export-tools{gap:7px}.pc-export-tools .btn{flex:1 1 28%;padding:10px 5px}}@media print{.pc-export-tools,.top,.sidebar,.mobilehead,button{display:none!important}.main{margin:0!important}.content{padding:0!important}.tablewrap{overflow:visible!important}.table{min-width:0!important}.panel{break-inside:avoid}}';
+ document.head.appendChild(exportStyle);
+ function escCsv(v){return '"'+String(v??'').replace(/"/g,'""').replace(/\s+/g,' ').trim()+'"'}
+ function getTables(){return Array.from(document.querySelectorAll('#view table')).filter(t=>!t.closest('.pc-export-tools'))}
+ function tableData(){return getTables().map((t,i)=>({name:t.closest('.panel')?.querySelector('h3')?.innerText||'List '+(i+1),rows:Array.from(t.rows).map(r=>Array.from(r.cells).map(c=>c.innerText.trim()))}))}
+ function filename(ext){let name=(document.querySelector('#view h1')?.innerText||document.title||'PolicyCrop').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'policycrop';return name+'-export.'+ext}
+ function download(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+ function buildHtml(){const clone=document.querySelector('#view').cloneNode(true);clone.querySelectorAll('.pc-export-tools,button,input,select,textarea').forEach(x=>x.remove());return '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#172b4d}h1,h2,h3{color:#10213f}table{border-collapse:collapse;width:100%;margin:12px 0 22px}th,td{border:1px solid #ccd5e2;padding:7px;text-align:left;font-size:11px}th{background:#edf2f8}section,.panel{margin:12px 0;padding:10px;border:1px solid #ddd;border-radius:8px}img{max-width:180px}</style></head><body>'+clone.innerHTML+'</body></html>'}
+ function exportFile(type){const data=tableData();if(!data.length){alert('Is page par export karne ke liye koi list/table nahi mili.');return}
+ const all=data.map(t=>t.name+'\n'+t.rows.map(r=>r.join('\t')).join('\n')).join('\n\n');
+ if(type==='csv'){const csv=data.map(t=>[escCsv(t.name),...t.rows.map(r=>r.map(escCsv).join(','))].join('\r\n')).join('\r\n\r\n');download(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),filename('csv'))}
+ else if(type==='excel'){download(new Blob(['\ufeff'+buildHtml()],{type:'application/vnd.ms-excel;charset=utf-8'}),filename('xls'))}
+ else if(type==='word'){download(new Blob(['\ufeff'+buildHtml()],{type:'application/msword;charset=utf-8'}),filename('doc'))}
+ else if(type==='json'){download(new Blob([JSON.stringify(data.map(t=>({list:t.name,columns:t.rows[0]||[],records:t.rows.slice(1).map(r=>Object.fromEntries((t.rows[0]||[]).map((h,i)=>[h,r[i]||''])))})),null,2)],{type:'application/json'}),filename('json'))}
+ else if(type==='txt'){download(new Blob([all],{type:'text/plain;charset=utf-8'}),filename('txt'))}
+ else if(type==='pdf'){const w=window.open('','_blank');if(!w){alert('PDF print ke liye browser pop-up allow karein.');return}w.document.open();w.document.write(buildHtml()+'<script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>');w.document.close()}
+ }
+ function mount(){const root=document.querySelector('#view');if(!root)return;const old=root.querySelector('.pc-export-tools');if(old)old.remove();if(!getTables().length)return;const box=document.createElement('section');box.className='pc-export-tools';box.innerHTML='<strong>⬇ Download this list:</strong><button class="btn" data-export="pdf">PDF</button><button class="btn" data-export="excel">Excel</button><button class="btn" data-export="word">Word</button><button class="btn" data-export="csv">CSV</button><button class="btn" data-export="json">JSON</button><button class="btn" data-export="txt">TXT</button><small class="pc-export-note">Export mein is page par dikh rahi list/table ka data aayega. PDF button se Print / Save as PDF choose karein.</small>';box.addEventListener('click',e=>{const b=e.target.closest('[data-export]');if(b)exportFile(b.dataset.export)});root.appendChild(box)}
+ const root=document.querySelector('#view');if(root){new MutationObserver(()=>{clearTimeout(window.pcExportTimer);window.pcExportTimer=setTimeout(mount,180)}).observe(root,{childList:true,subtree:true});setTimeout(mount,500)}
+ window.pcExportCurrentList=exportFile;
+})();
+
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
 function pcBootDashboard(){const target=$('view');if(!target)return;if(!target.innerHTML.trim()){try{if(!db||!Array.isArray(db.customers)||!Array.isArray(db.policies))throw new Error('Demo data needs reset');page='dashboard';render()}catch(err){target.innerHTML='<section class="panel" style="margin:16px 0"><h2>Dashboard could not load</h2><p class="sub">Reset the local demo workspace and reload.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></section>'}}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(pcBootDashboard,50),{once:true});else setTimeout(pcBootDashboard,50);
