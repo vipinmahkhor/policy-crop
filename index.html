@@ -349,7 +349,7 @@ goAdd=function(kind,customerId=null){
  const wrap=document.createElement('div');wrap.className='field';wrap.style.marginTop='12px';
  wrap.innerHTML='<label>Assign Customer To</label><select id="f_assignedTo"><option value="">Select team member</option>'+options+'</select><small class="sub">Owner can assign this customer to an Agent, RM or Employee.</small>';
  $('modalBody').querySelector('.fieldgrid')?.appendChild(wrap);
- if(role!=='Owner'){const sel=$('f_assignedTo');if(sel){sel.value='';sel.disabled=true;wrap.querySelector('small').textContent='This customer will be assigned to the current user: '+role+'.';}}
+ if(role!=='Owner'){wrap.querySelector('small').textContent='Select the team member responsible for this customer.';}
 };
 const pcSaveFormBeforeAssignment=saveForm;
 saveForm=function(k){
