@@ -544,100 +544,92 @@ render=function(){
 };
 
 
-/* PolicyCrop team onboarding: role-based request, approval and activation */
+/* PolicyCrop team onboarding + agent RM-change workflow */
 (function(){
- const pcEsc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- db.onboarding=db.onboarding||[]; db.team=db.team||[];
- function pcAddOnboardingNav(){
-  const nav=document.querySelector('.nav');if(!nav||document.getElementById('pcOnboardNav'))return;
-  const b=document.createElement('button');b.id='pcOnboardNav';b.innerHTML='<span class="ico">♙</span> Team Onboarding';b.onclick=()=>{page='onboarding';render()};nav.appendChild(b);
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ db.onboarding=db.onboarding||[];db.team=db.team||[];db.rmChangeRequests=db.rmChangeRequests||[];
+ const role=()=>$('role').value, owner=()=>role()==='Owner', employee=()=>role()==='Employee', rm=()=>role()==='RM', agent=()=>role()==='Agent';
+ const activeRMs=()=>db.team.filter(t=>t.role==='RM'&&t.status==='Active');
+ function addNav(){
+  const nav=document.querySelector('.nav');if(!nav)return;
+  let b=document.getElementById('pcOnboardNav');
+  if(owner()||employee()||rm()){
+   if(!b){b=document.createElement('button');b.id='pcOnboardNav';b.innerHTML='<span class="ico">♙</span> Team Onboarding';b.onclick=()=>{page='onboarding';render()};nav.appendChild(b)}
+   b.style.display='';
+  }else if(b)b.style.display='none';
+  let a=document.getElementById('pcRMChangeNav');
+  if(agent()){
+   if(!a){a=document.createElement('button');a.id='pcRMChangeNav';a.innerHTML='<span class="ico">↔</span> Request RM Change';a.onclick=()=>{page='rmChange';render()};nav.appendChild(a)}
+   a.style.display='';
+  }else if(a)a.style.display='none';
  }
- function pcOnboardForm(){
-  const actor=$('role').value,isOwner=actor==='Owner',isEmployee=actor==='Employee',isRM=actor==='RM';
-  const activeRMs=db.team.filter(x=>x.role==='RM'&&x.status==='Active');
-  const activeAgents=db.team.filter(x=>x.role==='Agent'&&x.status==='Active');
-  if(!(isOwner||isEmployee||isRM))return '<section class="panel"><h3>Team Onboarding</h3><div class="empty">Aapke role ko onboarding request create karne ki permission nahi hai.</div></section>';
-  let roleOptions=isOwner?'<option value="">Select member type</option><option value="Agent">Agent</option><option value="Employee">Employee</option><option value="RM">RM</option>':isEmployee?'<option value="">Select member type</option><option value="Agent">Agent</option><option value="RM">RM</option>':'<option value="Agent">Agent</option>';
-  const rmOptions=activeRMs.map(x=>'<option value="'+pcEsc(x.name)+'">'+pcEsc(x.name)+'</option>').join('');
-  const agentOptions=activeAgents.map(x=>'<option value="'+pcEsc(x.name)+'">'+pcEsc(x.name)+'</option>').join('');
-  return '<section class="panel" style="margin-bottom:18px"><h3>Team Member Onboarding</h3><p class="sub">'+(isOwner?'Owner yahan se Agent, Employee ya RM ko directly create aur activate karega. Owner ke banaye member ko approval ke liye bhejne ki zaroorat nahi hai.':'Employee Agent/RM onboarding request bhej sakta hai. RM sirf apne under Agent ki request bhej sakta hai. Request Owner ya Employee approval ke baad active hogi.')+'</p>'+
-  '<form id="pcTeamOnboardForm" class="fieldgrid" style="margin-top:16px">'+
-  ((isOwner||isEmployee)?'<div class="field"><label>Whom to Onboard *</label><select name="memberRole" id="pcMemberRole" required>'+roleOptions+'</select></div>':'<input type="hidden" name="memberRole" value="Agent">')+
-  '<div class="field"><label>Full Name *</label><input name="name" required></div>'+
-  '<div class="field"><label>Mobile *</label><input name="mobile" required inputmode="numeric"></div>'+
-  '<div class="field"><label>Email</label><input name="email" type="email"></div>'+
-  '<div class="field"><label>Address</label><input name="address"></div>'+
-  '<div class="field" id="pcReportingRMField"><label>Reporting RM *</label><select name="rm" id="pcReportingRM"><option value="">Select RM</option>'+(isRM?'<option value="'+pcEsc(pcActiveUser)+'" selected>'+pcEsc(pcActiveUser)+'</option>':rmOptions)+'</select></div>'+
-  '<div class="field"><label>Member Photo *</label><input name="photo" type="file" accept="image/*" required></div>'+
-  '<div class="field"><label>Aadhaar / KYC Document *</label><input name="kyc" type="file" accept="image/*,.pdf" required></div>'+
-  '<div class="field"><label>PAN Document</label><input name="pan" type="file" accept="image/*,.pdf"></div>'+
-  '<div class="field"><label>Bank Account Holder *</label><input name="holder" required></div>'+
-  '<div class="field"><label>Bank Name *</label><input name="bank" required></div>'+
-  '<div class="field"><label>Account Number *</label><input name="account" required></div>'+
-  '<div class="field"><label>IFSC *</label><input name="ifsc" required></div>'+
-  '<div style="grid-column:1/-1;text-align:right"><button class="btn primary" type="submit">'+(isOwner?'Create & Activate Member':'Submit for Approval')+'</button></div></form></section>';
+ function activate(x){
+  let t=db.team.find(t=>t.role===x.memberRole&&t.name===x.name);
+  const m={id:t?.id||Date.now(),name:x.name,role:x.memberRole,mobile:x.mobile,email:x.email,reportsTo:x.memberRole==='Agent'?x.rm:'',status:'Active',onboardingId:x.id,photo:x.files?.photo?.data||'',onboardedBy:x.approvedBy||x.requestedBy};
+  if(t)Object.assign(t,m);else db.team.push(m);
  }
- function pcOnboardRender(){
-  const actor=$('role').value,canApprove=actor==='Owner'||actor==='Employee';
-  const rows=db.onboarding.filter(x=>actor==='Owner'||actor==='Employee'||(actor==='RM'&&x.rm===pcActiveUser&&x.memberRole==='Agent'&&x.status==='Approved')||x.requestedBy===pcActiveUser);
-  let html='<div class="heading"><div><h1>Team Onboarding</h1><div class="sub">Agent, Employee and RM KYC, bank details, reporting hierarchy and approval tracking.</div></div></div>'+pcOnboardForm();
-  html+='<section class="panel"><h3>Onboarding Records & Approval Queue</h3><p class="sub">Owner ko sabhi requests aur approval kisne kiya dikhega. Employee approval ke baad bhi record Owner ko visible rahega.</p>';
-  if(rows.length){
-   html+='<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Requested By</th><th>Status</th><th>Approved By</th><th>Action</th></tr></thead><tbody>';
-   html+=rows.map(x=>'<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.memberRole||'Agent')+'</td><td>'+pcEsc(x.mobile)+'</td><td>'+pcEsc(x.rm||'—')+'</td><td>'+pcEsc(x.requestedBy)+' · '+pcEsc(x.requestedRole)+'</td><td><span class="pill '+(x.status==='Approved'?'':'orange')+'">'+pcEsc(x.status)+'</span></td><td>'+pcEsc(x.approvedBy||'—')+'</td><td><button class="btn" onclick="pcShowOnboard('+x.id+')">View KYC & Bank</button> '+(canApprove&&x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveOnboard('+x.id+')">Approve</button>':'')+'</td></tr>').join('');
-   html+='</tbody></table></div>';
-  }else html+='<div class="empty">No onboarding requests yet.</div>';
-  html+='</section><section class="panel" style="margin-top:18px"><h3>Active Team Members</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Onboarded By</th><th>Status</th></tr></thead><tbody>';
-  const teamRows=db.team.filter(x=>actor==='Owner'||actor==='Employee'||(actor==='RM'&&(x.role==='Agent'&&(x.reportsTo||'')===pcActiveUser)));
-  html+=teamRows.map(x=>'<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.role)+'</td><td>'+pcEsc(x.mobile||'—')+'</td><td>'+pcEsc(x.reportsTo||'—')+'</td><td>'+pcEsc(x.onboardedBy||'—')+'</td><td><span class="pill">Active</span></td></tr>').join('');
+ function form(){
+  const actor=role(),isO=actor==='Owner',isE=actor==='Employee',isR=actor==='RM';
+  if(!(isO||isE||isR))return '';
+  const opts=isO?'<option value="">Select member type</option><option>Agent</option><option>Employee</option><option>RM</option>':isE?'<option value="">Select member type</option><option>Agent</option><option>RM</option>':'<option value="Agent">Agent</option>';
+  const rml=activeRMs().map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('');
+  return '<section class="panel" style="margin-bottom:18px"><h3>Team Member Onboarding</h3><p class="sub">'+(isO?'Owner directly creates and activates the selected member.':isE?'Employee Agent/RM request bhej sakta hai; approval Owner ko visible rahega.':'RM sirf apne under Agent ki request bhej sakta hai.')+'</p><form id="pcTeamOnboardForm" class="fieldgrid" style="margin-top:16px">'+
+  (isO||isE?'<div class="field"><label>Whom to Onboard *</label><select name="memberRole" id="pcMemberRole" required>'+opts+'</select></div>':'<input type="hidden" name="memberRole" value="Agent">')+
+  '<div class="field"><label>Full Name *</label><input name="name" required></div><div class="field"><label>Mobile *</label><input name="mobile" required inputmode="numeric"></div><div class="field"><label>Email</label><input name="email" type="email"></div><div class="field"><label>Address</label><input name="address"></div>'+
+  '<div class="field" id="pcReportingRMField"><label>Reporting RM *</label><select name="rm" id="pcReportingRM"><option value="">Select RM</option>'+(isR?'<option value="'+esc(pcActiveUser)+'" selected>'+esc(pcActiveUser)+'</option>':rml)+'</select></div>'+
+  '<div class="field"><label>Member Photo *</label><input name="photo" type="file" accept="image/*" required></div><div class="field"><label>Aadhaar / KYC Document *</label><input name="kyc" type="file" accept="image/*,.pdf" required></div><div class="field"><label>PAN Document</label><input name="pan" type="file" accept="image/*,.pdf"></div><div class="field"><label>Bank Account Holder *</label><input name="holder" required></div><div class="field"><label>Bank Name *</label><input name="bank" required></div><div class="field"><label>Account Number *</label><input name="account" required></div><div class="field"><label>IFSC *</label><input name="ifsc" required></div><div style="grid-column:1/-1;text-align:right"><button class="btn primary" type="submit">'+(isO?'Create & Activate':'Submit for Approval')+'</button></div></form></section>';
+ }
+ function renderOnboard(){
+  const actor=role(),canApprove=actor==='Owner'||actor==='Employee';
+  let rows=db.onboarding.filter(x=>actor==='Owner'||(actor==='Employee'&&x.status==='Pending Approval')||(actor==='RM'&&x.memberRole==='Agent'&&x.requestedBy===pcActiveUser));
+  let html='<div class="heading"><div><h1>Team Onboarding</h1><div class="sub">Only authorized team roles can onboard members. Customers and Agents do not see this section.</div></div></div>'+form();
+  html+='<section class="panel"><h3>Onboarding Records & Approval Queue</h3><p class="sub">Owner ko sabhi records aur approval karne wale ka naam dikhega.</p>';
+  html+='<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Requested By</th><th>Status</th><th>Approved By</th><th>Action</th></tr></thead><tbody>';
+  html+=rows.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.memberRole)+'</td><td>'+esc(x.mobile)+'</td><td>'+esc(x.rm||'—')+'</td><td>'+esc(x.requestedBy)+' · '+esc(x.requestedRole)+'</td><td><span class="pill '+(x.status==='Approved'?'':'orange')+'">'+esc(x.status)+'</span></td><td>'+esc(x.approvedBy||'—')+'</td><td><button class="btn" onclick="pcShowOnboard('+x.id+')">View KYC</button> '+(canApprove&&x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveOnboard('+x.id+')">Approve</button>':'')+(canApprove?'<button class="btn" onclick="pcEditOnboard('+x.id+')">Modify</button> <button class="btn danger" onclick="pcDeleteOnboard('+x.id+')">Delete</button>':'')+'</td></tr>').join('')||'<tr><td colspan="8" class="empty">No onboarding records.</td></tr>';
+  html+='</tbody></table></div></section><section class="panel" style="margin-top:18px"><h3>Active Team Members</h3><div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Onboarded By</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+  const members=db.team.filter(t=>t.status==='Active'&&(actor==='Owner'||actor==='Employee'||(actor==='RM'&&t.role==='Agent'&&t.reportsTo===pcActiveUser)));
+  html+=members.map(t=>'<tr><td>'+esc(t.name)+'</td><td>'+esc(t.role)+'</td><td>'+esc(t.mobile||'—')+'</td><td>'+esc(t.reportsTo||'—')+'</td><td>'+esc(t.onboardedBy||'—')+'</td><td><span class="pill">Active</span></td><td>'+(actor==='Owner'?'<button class="btn" onclick="pcEditTeam('+t.id+')">Modify</button> <button class="btn" onclick="pcResignTeam('+t.id+')">Resignation</button>':'')+'</td></tr>').join('')||'<tr><td colspan="7" class="empty">No active members.</td></tr>';
   html+='</tbody></table></div></section>';
-  $('view').innerHTML=html;
-  const form=$('pcTeamOnboardForm');if(!form)return;
-  const roleSelect=$('pcMemberRole'),rmField=$('pcReportingRMField'),rmSelect=$('pcReportingRM');
-  function syncFields(){
-   const target=roleSelect?.value||(actor==='RM'?'Agent':'');
-   const needsRM=target==='Agent'&&(actor==='Owner'||actor==='Employee');
-   rmField.style.display=target==='Agent'?(needsRM?'block':'none'):'none';
-   rmSelect.required=needsRM;
-   if(actor==='RM'){rmSelect.value=pcActiveUser;rmSelect.disabled=true;}
+  if(actor==='Owner'||actor==='Employee'){
+   const req=db.rmChangeRequests;
+   html+='<section class="panel" style="margin-top:18px"><h3>Agent RM Change Approval</h3><div class="tablewrap"><table class="table"><thead><tr><th>Agent</th><th>Current RM</th><th>Requested By</th><th>Reason</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+   html+=req.map(x=>'<tr><td>'+esc(x.agentName)+'</td><td>'+esc(x.oldRM)+'</td><td>'+esc(x.requestedBy)+'</td><td>'+esc(x.reason)+'</td><td>'+esc(x.status)+'</td><td>'+(x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveRMChange('+x.id+')">Approve / Select RM</button>':'')+' <button class="btn" onclick="pcEditRMChange('+x.id+')">Modify</button> <button class="btn danger" onclick="pcDeleteRMChange('+x.id+')">Delete</button></td></tr>').join('')||'<tr><td colspan="6" class="empty">No RM change requests.</td></tr>';
+   html+='</tbody></table></div></section>';
   }
-  roleSelect?.addEventListener('change',syncFields);syncFields();
-  form.onsubmit=async e=>{
-   e.preventDefault();const fd=new FormData(form),memberRole=String(fd.get('memberRole')||'').trim();
+  $('view').innerHTML=html;
+  const f=$('pcTeamOnboardForm');if(!f)return;
+  const rs=$('pcMemberRole'),rf=$('pcReportingRMField'),rsel=$('pcReportingRM');
+  const sync=()=>{const target=rs?.value||(actor==='RM'?'Agent':'');rf.style.display=target==='Agent'?'block':'none';rsel.required=target==='Agent'&&actor!=='RM';if(actor==='RM'){rsel.value=pcActiveUser;rsel.disabled=true;}};
+  rs?.addEventListener('change',sync);sync();
+  f.onsubmit=async ev=>{
+   ev.preventDefault();const fd=new FormData(f),memberRole=String(fd.get('memberRole')||'').trim();
    if(!['Agent','Employee','RM'].includes(memberRole))return alert('Member type select karein.');
    if(actor==='RM'&&memberRole!=='Agent')return alert('RM sirf Agent onboard kar sakta hai.');
    if(actor==='Employee'&&!['Agent','RM'].includes(memberRole))return alert('Employee sirf Agent ya RM onboard kar sakta hai.');
-   const rm=memberRole==='Agent'?(actor==='RM'?pcActiveUser:String(fd.get('rm')||'')):'';
-   if(memberRole==='Agent'&&!rm)return alert('Agent ke liye Reporting RM select karna zaroori hai.');
-   const files={};
-   for(const key of ['photo','kyc','pan']){const f=fd.get(key);if(f&&f.size){if(f.size>2*1024*1024)return alert('Each upload must be under 2 MB in this demo.');files[key]={name:f.name,type:f.type,data:await new Promise((resolve,reject)=>{const rd=new FileReader();rd.onload=()=>resolve(rd.result);rd.onerror=reject;rd.readAsDataURL(f)})};}}
+   const reporting=memberRole==='Agent'?(actor==='RM'?pcActiveUser:String(fd.get('rm')||'')):'';
+   if(memberRole==='Agent'&&!reporting)return alert('Agent ke liye Reporting RM select karna zaroori hai.');
+   const files={};for(const k of ['photo','kyc','pan']){const file=fd.get(k);if(file&&file.size){if(file.size>2*1024*1024)return alert('Each upload must be under 2 MB in this demo.');files[k]={name:file.name,type:file.type,data:await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})};}}
    if(!files.photo||!files.kyc)return alert('Photo aur KYC document required hain.');
-   const item={id:Date.now(),memberRole,name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||'').trim(),email:String(fd.get('email')||'').trim(),address:String(fd.get('address')||'').trim(),rm,holder:String(fd.get('holder')||'').trim(),bank:String(fd.get('bank')||'').trim(),account:String(fd.get('account')||'').trim(),ifsc:String(fd.get('ifsc')||'').trim(),files,status:'Pending Approval',requestedBy:pcActiveUser,requestedRole:actor,requestedAt:new Date().toISOString(),approvedBy:'',approvedAt:''};
-   if(!item.name||!item.mobile||!item.holder||!item.bank||!item.account||!item.ifsc)return alert('Please complete all required fields.');
-   if(actor==='Owner'){item.status='Approved';item.approvedBy=pcActiveUser+' (Owner)';item.approvedAt=new Date().toISOString();pcActivateMember(item);}
-   db.onboarding.push(item);persist();alert(actor==='Owner'?'Member directly created and activated. No approval required.':'Request submitted. Owner/Employee approval pending.');pcOnboardRender();
+   const x={id:Date.now(),memberRole,name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||'').trim(),email:String(fd.get('email')||'').trim(),address:String(fd.get('address')||'').trim(),rm:reporting,holder:String(fd.get('holder')||'').trim(),bank:String(fd.get('bank')||'').trim(),account:String(fd.get('account')||'').trim(),ifsc:String(fd.get('ifsc')||'').trim(),files,status:'Pending Approval',requestedBy:pcActiveUser,requestedRole:actor,requestedAt:new Date().toISOString(),approvedBy:'',approvedAt:''};
+   if(!x.name||!x.mobile||!x.holder||!x.bank||!x.account||!x.ifsc)return alert('Please complete required fields.');
+   if(actor==='Owner'){x.status='Approved';x.approvedBy=pcActiveUser+' (Owner)';x.approvedAt=new Date().toISOString();activate(x);}
+   db.onboarding.push(x);persist();alert(actor==='Owner'?'Member created and activated.':'Request sent for Owner/Employee approval.');renderOnboard();
   };
  }
- function pcActivateMember(x){
-  const existing=db.team.find(t=>t.role===x.memberRole&&t.name===x.name);
-  const member={id:existing?.id||Date.now(),name:x.name,role:x.memberRole,mobile:x.mobile,email:x.email,reportsTo:x.memberRole==='Agent'?x.rm:'',status:'Active',onboardingId:x.id,photo:x.files?.photo?.data||'',onboardedBy:x.approvedBy||x.requestedBy};
-  if(existing)Object.assign(existing,member);else db.team.push(member);
- }
- window.pcShowOnboard=id=>{
-  const x=db.onboarding.find(a=>a.id===id);if(!x)return;
-  const file=(key,label)=>x.files?.[key]?'<p><b>'+label+':</b> '+pcEsc(x.files[key].name)+' <a href="'+x.files[key].data+'" download="'+pcEsc(x.files[key].name)+'">Download</a>'+(x.files[key].type.startsWith('image/')?'<br><img src="'+x.files[key].data+'" style="max-width:180px;max-height:150px;object-fit:contain;margin-top:8px">':'')+'</p>':'';
-  const win=window.open('','_blank');if(win){win.document.write('<title>Team KYC - '+pcEsc(x.name)+'</title><h2>'+pcEsc(x.name)+' · '+pcEsc(x.memberRole||'Agent')+'</h2>'+file('photo','Photo')+file('kyc','KYC')+file('pan','PAN')+'<h3>Bank Details</h3><p>'+pcEsc(x.holder)+' · '+pcEsc(x.bank)+' · '+pcEsc(x.account)+' · '+pcEsc(x.ifsc)+'</p><p>Reporting RM: '+pcEsc(x.rm||'—')+'</p><p>Requested by '+pcEsc(x.requestedBy)+' · '+pcEsc(x.requestedRole)+'</p><p>Status: '+pcEsc(x.status)+' · Approved by: '+pcEsc(x.approvedBy||'Pending')+'</p>');win.document.close();}
- };
- window.pcApproveOnboard=id=>{
-  const actor=$('role').value;if(actor!=='Owner'&&actor!=='Employee')return alert('Only Owner or Employee can approve onboarding.');
-  const x=db.onboarding.find(a=>a.id===id);if(!x||x.status!=='Pending Approval')return;
-  if(!confirm('Approve '+x.memberRole+' '+x.name+'?'))return;
-  x.status='Approved';x.approvedBy=pcActiveUser+' ('+actor+')';x.approvedAt=new Date().toISOString();pcActivateMember(x);
-  persist();alert(x.memberRole+' approved and activated. Owner can see who approved this request.');pcOnboardRender();
- };
- const originalRender=render;
- render=function(){pcAddOnboardingNav();if(page==='onboarding'){pcOnboardRender();document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='pcOnboardNav'));return;}originalRender();};
- pcAddOnboardingNav();
+ window.pcShowOnboard=id=>{const x=db.onboarding.find(a=>a.id===id);if(!x)return;const file=(k,l)=>x.files?.[k]?'<p><b>'+l+':</b> '+esc(x.files[k].name)+' <a href="'+x.files[k].data+'" download="'+esc(x.files[k].name)+'">Download</a>'+(x.files[k].type.startsWith('image/')?'<br><img src="'+x.files[k].data+'" style="max-width:180px;max-height:150px">':'')+'</p>':'';const w=window.open('','_blank');if(w){w.document.write('<h2>'+esc(x.name)+' · '+esc(x.memberRole)+'</h2>'+file('photo','Photo')+file('kyc','KYC')+file('pan','PAN')+'<h3>Bank Details</h3><p>'+esc(x.holder)+' · '+esc(x.bank)+' · '+esc(x.account)+' · '+esc(x.ifsc)+'</p><p>Requested by '+esc(x.requestedBy)+'; Approved by '+esc(x.approvedBy||'Pending')+'</p>');w.document.close();}};
+ window.pcApproveOnboard=id=>{if(!['Owner','Employee'].includes(role()))return alert('Only Owner/Employee can approve.');const x=db.onboarding.find(a=>a.id===id);if(!x||x.status!=='Pending Approval')return;if(x.memberRole==='Agent'){const list=activeRMs();if(!list.length)return alert('Pehle active RM onboard karein.');$('modalTitle').textContent='Approve Agent & Assign RM';$('modalBody').innerHTML='<p>Agent: <b>'+esc(x.name)+'</b></p><div class="field"><label>Final Reporting RM *</label><select id="pcApproveRM"><option value="">Select RM</option>'+list.map(t=>'<option value="'+esc(t.name)+'" '+(t.name===x.rm?'selected':'')+'>'+esc(t.name)+'</option>').join('')+'</select></div><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcConfirmApproveOnboard('+id+')">Approve & Activate</button></p>';openModal();}else if(confirm('Approve '+x.memberRole+' '+x.name+'?')){x.status='Approved';x.approvedBy=pcActiveUser+' ('+role()+')';x.approvedAt=new Date().toISOString();activate(x);persist();renderOnboard();}};
+ window.pcConfirmApproveOnboard=id=>{const x=db.onboarding.find(a=>a.id===id);const chosen=$('pcApproveRM')?.value;if(!chosen)return alert('Reporting RM select karein.');x.rm=chosen;x.status='Approved';x.approvedBy=pcActiveUser+' ('+role()+')';x.approvedAt=new Date().toISOString();activate(x);persist();closeModal();renderOnboard();};
+ window.pcEditOnboard=id=>{if(!['Owner','Employee'].includes(role()))return;const x=db.onboarding.find(a=>a.id===id);if(!x)return;$('modalTitle').textContent='Modify Onboarding Request';$('modalBody').innerHTML='<div class="fieldgrid">'+[['Name','name'],['Mobile','mobile'],['Email','email'],['Address','address'],['Bank Holder','holder'],['Bank','bank'],['Account','account'],['IFSC','ifsc']].map(([l,k])=>'<div class="field"><label>'+l+'</label><input id="pcO_'+k+'" value="'+esc(x[k]||'')+'"></div>').join('')+'</div><p style="text-align:right;margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcSaveOnboard('+id+')">Save</button></p>';openModal();};
+ window.pcSaveOnboard=id=>{const x=db.onboarding.find(a=>a.id===id);if(!x)return;['name','mobile','email','address','holder','bank','account','ifsc'].forEach(k=>x[k]=$('pcO_'+k).value.trim());persist();closeModal();renderOnboard();};
+ window.pcDeleteOnboard=id=>{if(!['Owner','Employee'].includes(role()))return;const x=db.onboarding.find(a=>a.id===id);if(!x||!confirm('Delete this onboarding record?'))return;db.onboarding=db.onboarding.filter(a=>a.id!==id);persist();renderOnboard();};
+ window.pcEditRMChange=id=>{const x=db.rmChangeRequests.find(a=>a.id===id);if(!x)return;const reason=prompt('Modify reason:',x.reason);if(reason===null)return;x.reason=reason.trim();persist();renderOnboard();};
+ window.pcDeleteRMChange=id=>{const x=db.rmChangeRequests.find(a=>a.id===id);if(!x||!confirm('Delete this RM change request?'))return;db.rmChangeRequests=db.rmChangeRequests.filter(a=>a.id!==id);persist();renderOnboard();};
+ window.pcApproveRMChange=id=>{if(!['Owner','Employee'].includes(role()))return;const x=db.rmChangeRequests.find(a=>a.id===id);if(!x||x.status!=='Pending Approval')return;const list=activeRMs().filter(t=>t.name!==x.oldRM);$('modalTitle').textContent='Approve RM Change';$('modalBody').innerHTML='<p>Agent: <b>'+esc(x.agentName)+'</b></p><div class="field"><label>Select New RM *</label><select id="pcNewRM"><option value="">Select RM</option>'+list.map(t=>'<option value="'+esc(t.name)+'">'+esc(t.name)+'</option>').join('')+'</select></div><p style="text-align:right;margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="pcConfirmRMChange('+id+')">Approve Change</button></p>';openModal();};
+ window.pcConfirmRMChange=id=>{const x=db.rmChangeRequests.find(a=>a.id===id),name=$('pcNewRM')?.value;if(!x||!name)return alert('New RM select karein.');const t=db.team.find(a=>a.role==='Agent'&&a.name===x.agentName&&a.status==='Active');if(!t)return alert('Active agent record not found.');t.reportsTo=name;x.newRM=name;x.status='Approved';x.approvedBy=pcActiveUser+' ('+role()+')';x.approvedAt=new Date().toISOString();persist();closeModal();renderOnboard();};
+ function renderRMChange(){const t=db.team.find(a=>a.role==='Agent'&&a.name===pcActiveUser&&a.status==='Active');const mine=db.rmChangeRequests.filter(x=>x.agentName===pcActiveUser);const rms=activeRMs().filter(x=>x.name!==(t?.reportsTo||''));$('view').innerHTML='<div class="heading"><div><h1>Request RM Change</h1><div class="sub">Agent RM change request bhej sakta hai. Approval Owner aur Employee queue me jayega.</div></div></div><section class="panel"><h3>Submit RM Change Request</h3>'+(t?'<p class="sub">Current RM: <b>'+esc(t.reportsTo||'Not assigned')+'</b></p><form id="pcRMChangeForm" class="fieldgrid"><div class="field"><label>New RM *</label><select name="newRM" required><option value="">Select RM</option>'+rms.map(x=>'<option value="'+esc(x.name)+'">'+esc(x.name)+'</option>').join('')+'</select></div><div class="field"><label>Reason *</label><textarea name="reason" required></textarea></div><div style="grid-column:1/-1;text-align:right"><button class="btn primary">Submit Request</button></div></form>':'<p class="empty">Active Agent profile not found for this demo user.</p>')+'</section><section class="panel" style="margin-top:18px"><h3>My RM Change Requests</h3><div class="tablewrap"><table class="table"><thead><tr><th>Current RM</th><th>Requested RM</th><th>Reason</th><th>Status</th><th>Approved By</th></tr></thead><tbody>'+mine.map(x=>'<tr><td>'+esc(x.oldRM)+'</td><td>'+esc(x.newRM||x.requestedRM)+'</td><td>'+esc(x.reason)+'</td><td>'+esc(x.status)+'</td><td>'+esc(x.approvedBy||'—')+'</td></tr>').join('')||'<tr><td colspan="5" class="empty">No requests yet.</td></tr>'+'</tbody></table></div></section>';const f=$('pcRMChangeForm');if(f)f.onsubmit=e=>{e.preventDefault();const fd=new FormData(f),newRM=String(fd.get('newRM')||''),reason=String(fd.get('reason')||'').trim();if(!newRM||!reason)return alert('New RM aur reason required hain.');db.rmChangeRequests.push({id:Date.now(),agentName:pcActiveUser,oldRM:t.reportsTo||'',requestedRM:newRM,reason,status:'Pending Approval',requestedBy:pcActiveUser,requestedAt:new Date().toISOString()});persist();alert('RM change request Owner/Employee approval ke liye bhej di gayi hai.');renderRMChange();};}
+ const priorRender=render;
+ render=function(){addNav();if(page==='onboarding'){if(!['Owner','Employee','RM'].includes(role())){page='dashboard';priorRender();return;}renderOnboard();document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='pcOnboardNav'));return;}if(page==='rmChange'){if(!agent()){page='dashboard';priorRender();return;}renderRMChange();document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.id==='pcRMChangeNav'));return;}priorRender();};
+ addNav();
 })();
 
 /* Owner controls: team profile modification/resignation and customer edit/delete */
