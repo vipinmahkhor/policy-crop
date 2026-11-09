@@ -505,7 +505,9 @@ goAdd=function(kind,customerId=null){
  type.onchange=()=>{
   box.innerHTML='';$('f_assignedTo').value='';$('f_assignedRM').value='';
   if(type.value==='Direct'){
-   $('f_assignedTo').value='';$('f_assignedRM').value='';\n   box.innerHTML='<div class="sub">Customer directly Owner ke under save hoga.</div>';\n  }else if(type.value==='RM'){
+   $('f_assignedTo').value='';$('f_assignedRM').value='';
+   box.innerHTML='<div class="sub">Customer directly Owner ke under save hoga.</div>';
+  }else if(type.value==='RM'){
    const rmOptions=rms.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('');
    box.innerHTML='<label>Select RM</label><select id="pcRM"><option value="">Select RM</option>'+rmOptions+'</select><div style="margin-top:8px"><label>Select Agent (required)</label><select id="pcAgent" disabled><option value="">First select RM</option></select></div>';
    $('pcRM').onchange=()=>{
@@ -540,7 +542,8 @@ const pcOldSave=saveForm;
 saveForm=function(k){
  if(k!=='customers')return pcOldSave(k);
  const assign=$('f_assignedTo')?.value||'',rm=$('f_assignedRM')?.value||'',type=$('pcAssignType')?.value||'';
- if(!type||!assign)return alert('Assignment complete karein. RM choose karne par RM ka Agent select karna mandatory hai.');
+ if(!type)return alert('Customer assignment type select karein.');
+ if(type!=='Direct'&&!assign)return alert('Assignment complete karein. RM choose karne par us RM ka Agent select karna mandatory hai.');
  const val=id=>$('f_'+id)?.value.trim()||'';
  const obj={id:Date.now(),name:val('name'),mobile:val('mobile'),email:val('email'),city:val('city'),assignedTo:assign,assignedRole:type,assignedRM:rm||(type==='Agent'&&$('role').value==='RM'?pcActiveUser:''),assignedEmployee:'',createdBy:pcActiveUser,vehicles:[],kyc:[]};
  if(!obj.name)return alert('Please enter customer name.');
