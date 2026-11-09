@@ -560,7 +560,7 @@ render=function(){
   let roleOptions=isOwner?'<option value="">Select member type</option><option value="Agent">Agent</option><option value="Employee">Employee</option><option value="RM">RM</option>':isEmployee?'<option value="">Select member type</option><option value="Agent">Agent</option><option value="RM">RM</option>':'<option value="Agent">Agent</option>';
   const rmOptions=activeRMs.map(x=>'<option value="'+pcEsc(x.name)+'">'+pcEsc(x.name)+'</option>').join('');
   const agentOptions=activeAgents.map(x=>'<option value="'+pcEsc(x.name)+'">'+pcEsc(x.name)+'</option>').join('');
-  return '<section class="panel" style="margin-bottom:18px"><h3>Team Member Onboarding</h3><p class="sub">Owner Agent, Employee aur RM onboard kar sakta hai. Employee Agent/RM request bhej sakta hai. RM sirf apne under Agent request bhej sakta hai. Approval ke baad hi member active hoga.</p>'+
+  return '<section class="panel" style="margin-bottom:18px"><h3>Team Member Onboarding</h3><p class="sub">'+(isOwner?'Owner yahan se Agent, Employee ya RM ko directly create aur activate karega. Owner ke banaye member ko approval ke liye bhejne ki zaroorat nahi hai.':'Employee Agent/RM onboarding request bhej sakta hai. RM sirf apne under Agent ki request bhej sakta hai. Request Owner ya Employee approval ke baad active hogi.')+'</p>'+
   '<form id="pcTeamOnboardForm" class="fieldgrid" style="margin-top:16px">'+
   ((isOwner||isEmployee)?'<div class="field"><label>Whom to Onboard *</label><select name="memberRole" id="pcMemberRole" required>'+roleOptions+'</select></div>':'<input type="hidden" name="memberRole" value="Agent">')+
   '<div class="field"><label>Full Name *</label><input name="name" required></div>'+
@@ -575,13 +575,13 @@ render=function(){
   '<div class="field"><label>Bank Name *</label><input name="bank" required></div>'+
   '<div class="field"><label>Account Number *</label><input name="account" required></div>'+
   '<div class="field"><label>IFSC *</label><input name="ifsc" required></div>'+
-  '<div style="grid-column:1/-1;text-align:right"><button class="btn primary" type="submit">Submit for Approval</button></div></form></section>';
+  '<div style="grid-column:1/-1;text-align:right"><button class="btn primary" type="submit">'+(isOwner?'Create & Activate Member':'Submit for Approval')+'</button></div></form></section>';
  }
  function pcOnboardRender(){
   const actor=$('role').value,canApprove=actor==='Owner'||actor==='Employee';
   const rows=db.onboarding.filter(x=>actor==='Owner'||actor==='Employee'||(actor==='RM'&&x.rm===pcActiveUser&&x.memberRole==='Agent'&&x.status==='Approved')||x.requestedBy===pcActiveUser);
   let html='<div class="heading"><div><h1>Team Onboarding</h1><div class="sub">Agent, Employee and RM KYC, bank details, reporting hierarchy and approval tracking.</div></div></div>'+pcOnboardForm();
-  html+='<section class="panel"><h3>Onboarding Approval Queue</h3><p class="sub">Owner ko sabhi requests aur approval kisne kiya dikhega. Employee approval ke baad bhi record Owner ko visible rahega.</p>';
+  html+='<section class="panel"><h3>Onboarding Records & Approval Queue</h3><p class="sub">Owner ko sabhi requests aur approval kisne kiya dikhega. Employee approval ke baad bhi record Owner ko visible rahega.</p>';
   if(rows.length){
    html+='<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Reporting RM</th><th>Requested By</th><th>Status</th><th>Approved By</th><th>Action</th></tr></thead><tbody>';
    html+=rows.map(x=>'<tr><td>'+pcEsc(x.name)+'</td><td>'+pcEsc(x.memberRole||'Agent')+'</td><td>'+pcEsc(x.mobile)+'</td><td>'+pcEsc(x.rm||'—')+'</td><td>'+pcEsc(x.requestedBy)+' · '+pcEsc(x.requestedRole)+'</td><td><span class="pill '+(x.status==='Approved'?'':'orange')+'">'+pcEsc(x.status)+'</span></td><td>'+pcEsc(x.approvedBy||'—')+'</td><td><button class="btn" onclick="pcShowOnboard('+x.id+')">View KYC & Bank</button> '+(canApprove&&x.status==='Pending Approval'?'<button class="btn primary" onclick="pcApproveOnboard('+x.id+')">Approve</button>':'')+'</td></tr>').join('');
@@ -615,7 +615,7 @@ render=function(){
    const item={id:Date.now(),memberRole,name:String(fd.get('name')||'').trim(),mobile:String(fd.get('mobile')||'').trim(),email:String(fd.get('email')||'').trim(),address:String(fd.get('address')||'').trim(),rm,holder:String(fd.get('holder')||'').trim(),bank:String(fd.get('bank')||'').trim(),account:String(fd.get('account')||'').trim(),ifsc:String(fd.get('ifsc')||'').trim(),files,status:'Pending Approval',requestedBy:pcActiveUser,requestedRole:actor,requestedAt:new Date().toISOString(),approvedBy:'',approvedAt:''};
    if(!item.name||!item.mobile||!item.holder||!item.bank||!item.account||!item.ifsc)return alert('Please complete all required fields.');
    if(actor==='Owner'){item.status='Approved';item.approvedBy=pcActiveUser+' (Owner)';item.approvedAt=new Date().toISOString();pcActivateMember(item);}
-   db.onboarding.push(item);persist();alert(actor==='Owner'?'Member onboarded and activated successfully.':'Request submitted. Owner/Employee approval pending.');pcOnboardRender();
+   db.onboarding.push(item);persist();alert(actor==='Owner'?'Member directly created and activated. No approval required.':'Request submitted. Owner/Employee approval pending.');pcOnboardRender();
   };
  }
  function pcActivateMember(x){
