@@ -183,12 +183,41 @@ render=function(){
   let host=$('view'),panel=host.querySelector('.panel');
   if(panel){
    let support='<div class="panel" style="margin:0 0 15px"><h3>Dashboard Support Contact</h3><div class="fieldgrid"><div class="field"><label>Support Mobile Number (visible to all roles)</label><input id="supportNumberInput" value="'+esc(supportNumber())+'" placeholder="Enter support phone number"></div></div><p style="text-align:right;margin:12px 0 0"><button class="btn primary" onclick="saveSupportNumber()">Save Support Number</button></p></div>';
-   let list='<div class="panel"><h3>Active / Scheduled Campaigns</h3>'+(db.campaigns.length?db.campaigns.map(b=>'<div class="campaign-admin-row"><div style="display:flex;align-items:center;gap:12px;min-width:0"><img src="'+b.image+'" alt=""><div><b>'+esc(b.title||'Untitled campaign')+'</b><div class="sub">'+esc(b.start||'No start date')+' to '+esc(b.end||b.valid||'No end date')+' · '+esc((b.audience||[]).join(', '))+'</div><div class="sub">'+esc(b.message||'')+'</div></div></div><button class="btn danger" onclick="deleteCampaign('+b.id+')">Delete</button></div>').join(''):'<div class="empty">No campaigns added yet.</div>')+'</div>';
+   let list='<div class="panel"><h3>Active / Scheduled Campaigns</h3>'+(db.campaigns.length?db.campaigns.map(b=>'<div class="campaign-admin-row"><div style="display:flex;align-items:center;gap:12px;min-width:0"><img src="'+b.image+'" alt=""><div><b>'+esc(b.title||'Untitled campaign')+'</b><div class="sub">'+esc(b.start||'No start date')+' to '+esc(b.end||b.valid||'No end date')+' · '+esc((b.audience||[]).join(', '))+'</div><div class="sub">'+esc(b.message||'')+'</div></div></div><div style="display:flex;gap:7px;flex-shrink:0"><button class="btn" onclick="editCampaign('+b.id+')">Modify</button><button class="btn danger" onclick="deleteCampaign('+b.id+')">Delete</button></div></div>').join(''):'<div class="empty">No campaigns added yet.</div>')+'</div>';
    host.innerHTML=host.innerHTML.replace(panel.outerHTML,support+list);
   }
  }
 };
 function saveSupportNumber(){if($('role').value!=='Owner')return;let n=$('supportNumberInput').value.trim();if(n&&!/^[+0-9 ()-]{7,20}$/.test(n)){alert('Enter a valid support phone number.');return}localStorage.setItem('pc_support_number',n);alert('Support number saved and will appear on all role dashboards.');render()}
+function editCampaign(id){
+ if($('role').value!=='Owner')return;
+ const b=db.campaigns.find(x=>x.id===id);if(!b)return;
+ $('modalTitle').textContent='Modify Dashboard Campaign';
+ $('modalBody').innerHTML='<div class="fieldgrid">'+
+ '<div class="field"><label>Banner Title</label><input id="f_title" value="'+esc(b.title||'')+'"></div>'+
+ '<div class="field"><label>Campaign Start Date</label><input id="f_start" type="date" value="'+esc(b.start||'')+'"></div>'+
+ '<div class="field"><label>Campaign End Date</label><input id="f_end" type="date" value="'+esc(b.end||b.valid||'')+'"></div>'+
+ '<div class="field"><label>Replace Banner Image (optional)</label><input id="f_image" type="file" accept="image/*"><small class="sub">Leave empty to keep the current image.</small><div class="bannerpreview"><img src="'+b.image+'" alt="Current banner"></div></div>'+
+ '<div class="field"><label>Message / Announcement</label><textarea id="f_message">'+esc(b.message||'')+'</textarea></div>'+
+ '<div class="field"><label>Message Text Color</label><input id="f_textColor" type="color" value="'+esc(b.textColor||'#ffffff')+'"></div>'+
+ '<div class="field"><label>Audience (select roles)</label><select id="f_audience" multiple>'+['Owner','Agent','Customer','RM','Employee'].map(r=>'<option '+((b.audience||[]).includes(r)?'selected':'')+'>'+r+'</option>').join('')+'</select></div></div>'+
+ '<p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="saveCampaignEdit('+id+')">Save Changes</button></p>';
+ openModal();
+}
+function saveCampaignEdit(id){
+ if($('role').value!=='Owner')return;
+ const b=db.campaigns.find(x=>x.id===id);if(!b)return;
+ const start=$('f_start').value,end=$('f_end').value;
+ if(start&&end&&end<start){alert('End date must be on or after start date.');return}
+ const audience=[...$('f_audience').selectedOptions].map(x=>x.value);
+ if(!audience.length){alert('Select at least one audience role.');return}
+ b.title=$('f_title').value.trim();b.start=start;b.end=end;b.valid=end;
+ b.message=$('f_message').value.trim();b.textColor=$('f_textColor').value;b.audience=audience;
+ const file=$('f_image').files[0];
+ const finish=()=>{persist();closeModal();render()};
+ if(file){const reader=new FileReader();reader.onload=()=>{b.image=reader.result;finish()};reader.readAsDataURL(file)}
+ else finish();
+}
 function deleteCampaign(id){if($('role').value!=='Owner')return;if(!confirm('Delete this campaign banner?'))return;db.campaigns=db.campaigns.filter(b=>b.id!==id);persist();render()}
 
 try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard loading error</h2><p class="sub">A saved demo-data format was incompatible. Please use Reset Demo Data below to restore the sample workspace.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></div>'}function resetDemo(){localStorage.removeItem('pc_full_demo');location.reload()}
