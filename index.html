@@ -195,14 +195,31 @@ function backToCustomers(){page='customers';render()}
 function addCustomerVehicle(customerId){
  const c=db.customers.find(x=>Number(x.id)===Number(customerId));if(!c)return;
  $('modalTitle').textContent='Add Vehicle · '+c.name;
- $('modalBody').innerHTML='<div class="fieldgrid">'+[
- ['Registration Number','reg','text'],['Vehicle Type','type','text'],['Make','make','text'],['Model / Variant','model','text'],['Manufacturing Year','year','number'],['Fuel Type','fuel','text'],['Registration Date','regdate','date'],['Chassis Number','chassis','text'],['Engine Number','engine','text'],['Insurer','insurer','text'],['Policy Number','policy','text'],['Policy Expiry Date','expiry','date'],['IDV (₹)','idv','number']
- ].map(([label,key,type])=>'<div class="field"><label>'+label+'</label><input id="cv_'+key+'" type="'+type+'" placeholder="'+label+'"></div>').join('')+'</div><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="saveCustomerVehicle('+c.id+')">Save Vehicle</button></p>';
+ const select=(key,label,items)=>'<div class="field"><label>'+label+'</label><select id="cv_'+key+'"><option value="">Select '+label+'</option>'+items.map(x=>'<option value="'+x+'">'+x+'</option>').join('')+'<option value="__other__">Other / Enter manually</option></select><input id="cv_'+key+'_other" class="hide" style="margin-top:8px" placeholder="Enter '+label+'"></div>';
+ const makes=['Maruti Suzuki','Hyundai','Tata','Mahindra','Toyota','Honda','Kia','Renault','Nissan','Volkswagen','Skoda','MG','Mercedes-Benz','BMW','Audi','Ashok Leyland','Eicher','BharatBenz','Tata Motors','Force','Bajaj','Hero','TVS','Honda Motorcycle','Royal Enfield','Yamaha','Suzuki','KTM','Jawa','Piaggio','Other'];
+ const types=['Private Car','Two Wheeler','Goods Carrier','Passenger Carrying Vehicle','Taxi','Auto Rickshaw','Bus','Tractor','Trailer','Construction Equipment','Electric Vehicle','Other'];
+ const fuels=['Petrol','Diesel','CNG','LPG','Electric','Petrol + CNG','Petrol + LPG','Hybrid'];
+ const insurers=['New India Assurance','National Insurance','United India Insurance','Oriental Insurance','ICICI Lombard','HDFC ERGO','Bajaj Allianz','Tata AIG','Reliance General','SBI General','Chola MS','IFFCO Tokio','Go Digit','ACKO','Zuno General Insurance','Kotak General Insurance','Liberty General','Magma HDI','Royal Sundaram','Shriram General','Future Generali','Universal Sompo'];
+ const years=Array.from({length:35},(_,i)=>String(new Date().getFullYear()-i));
+ $('modalBody').innerHTML='<div class="fieldgrid">'+
+ '<div class="field"><label>Registration Number *</label><input id="cv_reg" placeholder="e.g. MP20AB1234" style="text-transform:uppercase"></div>'+
+ select('type','Vehicle Type',types)+select('make','Make',makes)+
+ '<div class="field"><label>Model / Variant</label><input id="cv_model" list="cv_model_list" placeholder="Enter model / variant"><datalist id="cv_model_list"><option value="Swift"><option value="Baleno"><option value="WagonR"><option value="Alto"><option value="Dzire"><option value="Brezza"><option value="Ertiga"><option value="Creta"><option value="i20"><option value="Venue"><option value="Nexon"><option value="Punch"><option value="Harrier"><option value="Scorpio"><option value="Bolero"><option value="Thar"><option value="Fortuner"><option value="Innova Crysta"><option value="Activa"><option value="Splendor"><option value="Shine"><option value="Classic 350"></datalist></div>'+
+ select('year','Manufacturing Year',years)+select('fuel','Fuel Type',fuels)+
+ '<div class="field"><label>Registration Date</label><input id="cv_regdate" type="date"></div>'+
+ '<div class="field"><label>Chassis Number</label><input id="cv_chassis" placeholder="Enter chassis number"></div><div class="field"><label>Engine Number</label><input id="cv_engine" placeholder="Enter engine number"></div>'+
+ select('insurer','Insurer',insurers)+
+ '<div class="field"><label>Policy Number</label><input id="cv_policy" placeholder="Enter policy number"></div><div class="field"><label>Policy Expiry Date</label><input id="cv_expiry" type="date"></div><div class="field"><label>IDV (₹)</label><input id="cv_idv" type="number" min="0" placeholder="Enter IDV"></div>'+
+ '</div><p class="sub" style="margin-top:10px">Vehicle Type, Make, Fuel, Year aur Insurer dropdown se select karein. Model / Variant manually bhi enter kar sakte hain.</p><p style="text-align:right;margin-top:18px"><button class="btn" onclick="closeModal()">Cancel</button> <button class="btn primary" onclick="saveCustomerVehicle('+c.id+')">Save Vehicle</button></p>';
+ for(const key of ['type','make','year','fuel','insurer']){
+  const el=$('cv_'+key),other=$('cv_'+key+'_other');if(!el||!other)continue;
+  el.addEventListener('change',()=>{other.classList.toggle('hide',el.value!=='__other__');if(el.value==='__other__')other.focus()});
+ }
  openModal();
 }
 function saveCustomerVehicle(customerId){
- const val=k=>$('cv_'+k)?.value.trim()||'';
- const reg=val('reg');if(!reg){alert('Please enter the vehicle registration number.');return}
+ const val=k=>{const el=$('cv_'+k);if(!el)return '';const v=String(el.value||'').trim();if(v==='__other__')return String($('cv_'+k+'_other')?.value||'').trim();return v};
+ const reg=val('reg').toUpperCase();if(!reg){alert('Please enter the vehicle registration number.');return}
  const obj={id:Date.now(),customer:Number(customerId),reg,type:val('type'),make:val('make'),model:val('model'),year:val('year'),fuel:val('fuel'),regdate:val('regdate'),chassis:val('chassis'),engine:val('engine'),insurer:val('insurer'),policy:val('policy'),expiry:val('expiry'),idv:val('idv')};
  db.vehicles.push(obj);const c=db.customers.find(x=>Number(x.id)===Number(customerId));if(c){c.vehicles=c.vehicles||[];c.vehicles.push(obj.id)}
  persist();closeModal();selectedCustomer=c;renderCustomerProfile();
