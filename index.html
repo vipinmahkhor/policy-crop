@@ -578,7 +578,7 @@ render=function(){
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  db.onboarding=db.onboarding||[];db.team=db.team||[];db.rmChangeRequests=db.rmChangeRequests||[];
  const role=()=>$('role').value, owner=()=>role()==='Owner', employee=()=>role()==='Employee', rm=()=>role()==='RM', agent=()=>role()==='Agent';
- const activeRMs=()=>db.team.filter(t=>t.role==='RM'&&t.status==='Active');
+ const activeRMs=()=>db.team.filter(t=>t.role==='RM'&&!['Inactive','Resigned','Pending Approval','Rejected'].includes(String(t.status||'').trim()));
  function addNav(){
   const nav=document.querySelector('.nav');if(!nav)return;
   let b=document.getElementById('pcOnboardNav');
