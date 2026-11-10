@@ -170,17 +170,22 @@ let commissionToFilter='';
 let commissionStatusFilter='All';
 let commissionSearchFilter='';
 function renderCommissionWorkspace(){
+ const role=$('role')?.value||'Owner',identity=String($('pcIdentity')?.value||'').trim().toLowerCase();
  const rows=(db.commissions||[]).map(x=>{
-  const pol=(db.policies||[]).find(p=>String(p.number||'').toLowerCase()===String(x.policy||x.policyNumber||'').toLowerCase());
-  const veh=(db.vehicles||[]).find(v=>String(v.policySubmission?.number||v.policy||'').toLowerCase()===String(x.policy||x.policyNumber||'').toLowerCase())||(db.vehicles||[]).find(v=>pol&&String(v.reg||'').toLowerCase()===String(pol.vehicle||'').toLowerCase());
+  const policyNo=String(x.policy||x.policyNumber||'').trim().toLowerCase();
+  const pol=(db.policies||[]).find(p=>String(p.number||'').trim().toLowerCase()===policyNo);
+  const veh=(db.vehicles||[]).find(v=>String(v.policySubmission?.number||v.policy||'').trim().toLowerCase()===policyNo)||(db.vehicles||[]).find(v=>pol&&String(v.reg||'').toLowerCase()===String(pol.vehicle||'').toLowerCase());
   const cust=veh?(db.customers||[]).find(c=>Number(c.id)===Number(veh.customer)):pol?(db.customers||[]).find(c=>String(c.name||'').toLowerCase()===String(pol.customer||'').toLowerCase()):null;
   const sub=veh?.policySubmission||{};
+  const associates=[x.agentName,x.agent,x.assignedAgent,x.agentMobile,x.agentId,x.rmName,x.rm,x.assignedRM,x.rmMobile,x.brokerSource,x.broker,x.brokerName,x.owner,pol?.agentName,pol?.agent,pol?.assignedAgent,pol?.agentMobile,pol?.agentId,pol?.rmName,pol?.rm,pol?.assignedRM,pol?.brokerSource,pol?.broker,pol?.brokerName,veh?.assignedTo,veh?.agent,veh?.agentName,veh?.agentMobile,veh?.rm,veh?.assignedRM,veh?.policySubmission?.brokerSource,veh?.policySubmission?.agent,veh?.policySubmission?.agentName,veh?.policySubmission?.assignedAgent].filter(Boolean).map(v=>String(v).trim().toLowerCase());
+  const associated=role==='Owner'||role==='Employee'||(role==='Agent'&&associates.some(v=>v===identity))||(role==='RM'&&associates.some(v=>v===identity))||(role==='Customer'&&[cust?.name,cust?.mobile,x.customer,x.mobile].filter(Boolean).some(v=>String(v).trim().toLowerCase()===identity));
+  if(!associated)return null;
   const status=String(x.paymentStatus||x.status||pol?.brokerPaymentStatus||sub.paymentStatus||'Pending');
   const paid=/paid|received|completed/i.test(status);
   const date=String(x.paymentDate||x.date||x.createdAt||x.bookingDate||pol?.approvedAt||sub.paymentDate||'').slice(0,10);
   const vtype=veh?[veh.type,veh.make,veh.model,veh.year,veh.fuel].filter(Boolean).join(' · '):[pol?.type,pol?.make,pol?.model,pol?.year,pol?.fuel].filter(Boolean).join(' · ');
   return {...x,_customer:x.customer||pol?.customer||cust?.name||'—',_mobile:x.mobile||cust?.mobile||'—',_vehicle:x.vehicle||pol?.vehicle||veh?.reg||'—',_spec:x.vehicleSpecification||vtype||'—',_date:date,_paid:paid};
- });
+ }).filter(Boolean);
  const filtered=rows.filter(x=>{
   if(commissionMonthFilter&&(!x._date||x._date.slice(0,7)!==commissionMonthFilter))return false;
   if(commissionFromFilter&&(!x._date||x._date<commissionFromFilter))return false;
