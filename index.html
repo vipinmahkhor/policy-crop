@@ -389,11 +389,35 @@ searchInput.addEventListener('focus',showGlobalSearchResults);searchInput.addEve
 /* Campaign controls: compact auto-rotating banner, date window, text color, support number, delete */
 let bannerSlideIndex=0,bannerSlideTimer=null;
 function supportNumber(){try{return localStorage.getItem('pc_support_number')||''}catch(e){return ''}}
+function teamContact(person){if(!person)return null;return {name:person.name||'',phone:person.mobile||person.phone||person.mobileNumber||person.contact||'',email:person.email||person.emailId||''}}
+function visibleSupportContacts(){
+ const role=$('role')?.value||'Owner',identity=$('pcIdentity')?.value||'',team=db.team||[],policies=db.policies||[],customers=db.customers||[];
+ const me=team.find(t=>[t.name,t.mobile,t.id,t.userId,t.username].filter(Boolean).some(v=>String(v).toLowerCase()===String(identity).toLowerCase()));
+ const company={name:'Company Support',phone:supportNumber(),email:supportEmail()},out=[];
+ const add=(label,p)=>{if(p&&(p.phone||p.email))out.push({label,...p})};
+ if(role==='Customer'){
+  const c=customers.find(x=>[x.name,x.mobile,x.id].filter(Boolean).some(v=>String(v).toLowerCase()===String(identity).toLowerCase()));
+  const policy=policies.find(p=>String(p.customer||'').toLowerCase()===String(c?.name||identity).toLowerCase());
+  const agentKey=policy?.agentName||policy?.agent||policy?.assignedAgent||c?.assignedTo||'';
+  const agent=team.find(t=>String(t.name||'').toLowerCase()===String(agentKey).toLowerCase()||String(t.mobile||'')===String(agentKey));
+  add('Your Agent',teamContact(agent));add('Company Support',company);
+ }else if(role==='Agent'){
+  const agent=me||team.find(t=>t.role==='Agent'&&String(t.name||'').toLowerCase()===String(identity).toLowerCase());
+  const rmKey=agent?.rmName||agent?.rm||agent?.assignedRM||agent?.reportingManager||'';
+  const rm=team.find(t=>String(t.name||'').toLowerCase()===String(rmKey).toLowerCase()||String(t.mobile||'')===String(rmKey));
+  add('Your RM',teamContact(rm));add('Company Support',company);
+ }else if(role==='RM'||role==='Owner'||role==='Employee'){add('Company Support',company)}
+ return out;
+}
+function supportContactPanel(){
+ const contacts=visibleSupportContacts();if(!contacts.length)return '';
+ return '<div class="panel" style="margin:14px 0"><h3>Support Contacts</h3><div class="fieldgrid">'+contacts.map(c=>'<div class="field"><label>'+esc(c.label)+'</label><b>'+esc(c.name||c.label)+'</b>'+(c.phone?'<div>☎ <a href="tel:'+esc(c.phone)+'">'+esc(c.phone)+'</a></div>':'')+(c.email?'<div>✉ <a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a></div>':'')+'</div>').join('')+'</div></div>';
+}
 function supportStrip(){const leads=[...(db.leads||[])].filter(x=>leadVisible(x)).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0)||Number(b.id||0)-Number(a.id||0)).slice(0,20);if(!leads.length)return '<div class="support-strip pc-lead-ticker"><b>🆕 Latest Leads</b><span class="sub">No recent leads</span></div>';const cards=leads.map(x=>'<div class="pc-lead-ticker-item"><div class="pc-lead-ticker-name">'+esc(x.name||'New Lead')+' <span>'+esc(x.stage||'New')+'</span></div><div class="pc-lead-ticker-detail"><b>Mobile:</b> '+esc(x.mobile||'—')+' &nbsp; <b>Source:</b> '+esc(x.source||'—')+'</div><div class="pc-lead-ticker-detail"><b>Vehicle:</b> '+esc([x.vehicleReg,x.vehicleType,x.vehicleMake,x.vehicleModel].filter(Boolean).join(' · ')||'—')+'</div><div class="pc-lead-ticker-detail"><b>Insurer:</b> '+esc(x.insurer||'—')+' &nbsp; <b>Policy:</b> '+esc(x.policyType||'—')+'</div><div class="pc-lead-ticker-detail"><b>Assigned Agent:</b> '+esc(x.assignedAgent||x.agent||'—')+' &nbsp; <b>RM:</b> '+esc(x.assignedRM||x.rm||'—')+'</div><div class="pc-lead-ticker-detail"><b>Follow-up:</b> '+esc(x.followupDate||'—')+' &nbsp; <b>Reminder:</b> '+esc(x.reminderAt?new Date(x.reminderAt).toLocaleString():'—')+'</div>'+(x.reminderNote?'<div class="pc-lead-ticker-detail"><b>Reminder Note:</b> '+esc(x.reminderNote)+'</div>':'')+(x.comments?'<div class="pc-lead-ticker-detail"><b>Comments:</b> '+esc(x.comments)+'</div>':'')+'</div>').join('');return '<div class="support-strip pc-lead-ticker"><div class="pc-lead-ticker-head">🆕 <b>Latest Leads & Full Details</b><button type="button" onclick="navigate(&#39;leads&#39;)">View All</button></div><div class="pc-lead-ticker-window"><div class="pc-lead-ticker-list">'+cards+'</div></div></div>'}
 function dashboardBanner(){
  const role=$('role').value, today=new Date().toISOString().slice(0,10);
  const banners=(db.campaigns||[]).filter(b=>(b.image||(b.images||[]).length)&&(!b.audience||!b.audience.length||b.audience.includes(role))&&(!b.start||b.start<=today)&&(!b.end&&!b.valid||((b.end||b.valid)>=today))).flatMap(b=>(b.images&&b.images.length?b.images:[b.image]).filter(Boolean).map((src,i)=>({...b,image:src,_slide:i})));
- let html=supportStrip();
+ let html=supportStrip()+supportContactPanel();
  if(banners.length){
   html+='<div class="dashboard-promo-corner"><div class="dashboard-promo-stack"><div class="dash-banner" id="campaignSlider">'+banners.map((b,i)=>'<div class="banner-slide '+(i===0?'active':'')+'"><img src="'+b.image+'" alt="'+esc(b.title||'Campaign')+'"><div class="dash-banner-caption" style="color:'+esc(b.textColor||'#ffffff')+'"><b>'+esc(b.title||'')+'</b>'+(b.message?'<p>'+esc(b.message)+'</p>':'')+'</div></div>').join('')+(banners.length>1?'<div class="banner-dots">'+banners.map((b,i)=>'<button class="'+(i===0?'active':'')+'" aria-label="Banner '+(i+1)+'" onclick="showCampaignSlide('+i+')"></button>').join('')+'</div>':'')+'</div>'+(role==='Owner'?'<button class="btn manage-banner-mini" onclick="navigate(\'campaigns\')">Manage Banners</button>':'')+'</div></div>';
  }else if(role==='Owner'){html+='<div class="dashboard-promo-corner"><div class="banner-owner-link"><b>Dashboard Banner</b><button class="btn primary" onclick="navigate(\'campaigns\')">Manage Banners</button></div></div>'}
@@ -435,13 +459,14 @@ render=function(){
  if(page==='campaigns'&&$('role').value==='Owner'){
   let host=$('view'),panel=host.querySelector('.panel');
   if(panel){
-   let support='<div class="panel" style="margin:0 0 15px"><h3>Dashboard Support Contact</h3><div class="fieldgrid"><div class="field"><label>Support Mobile Number (visible to all roles)</label><input id="supportNumberInput" value="'+esc(supportNumber())+'" placeholder="Enter support phone number"></div></div><p style="text-align:right;margin:12px 0 0"><button class="btn primary" onclick="saveSupportNumber()">Save Support Number</button></p></div>';
+   let support='<div class="panel" style="margin:0 0 15px"><h3>Company Support Contact</h3><div class="fieldgrid"><div class="field"><label>Company Support Mobile (visible to all roles)</label><input id="supportNumberInput" value="'+esc(supportNumber())+'" placeholder="Enter company phone number"></div><div class="field"><label>Company Support Email (visible to all roles)</label><input id="supportEmailInput" type="email" value="'+esc(supportEmail())+'" placeholder="support@company.com"></div></div><p style="text-align:right;margin:12px 0 0"><button class="btn primary" onclick="saveSupportNumber()">Save Company Contacts</button></p></div>';
    let list='<div class="panel"><h3>Active / Scheduled Campaigns</h3>'+(db.campaigns.length?db.campaigns.map(b=>'<div class="campaign-admin-row"><div style="display:flex;align-items:center;gap:12px;min-width:0"><img src="'+b.image+'" alt=""><div><b>'+esc(b.title||'Untitled campaign')+'</b><div class="sub">'+esc(b.start||'No start date')+' to '+esc(b.end||b.valid||'No end date')+' · '+esc((b.audience||[]).join(', '))+'</div><div class="sub">'+esc(b.message||'')+'</div></div></div><div style="display:flex;gap:7px;flex-shrink:0"><button class="btn" onclick="editCampaign('+b.id+')">Modify</button><button class="btn danger" onclick="deleteCampaign('+b.id+')">Delete</button></div></div>').join(''):'<div class="empty">No campaigns added yet.</div>')+'</div>';
    host.innerHTML=host.innerHTML.replace(panel.outerHTML,support+list);
   }
  }
 };
-function saveSupportNumber(){if($('role').value!=='Owner')return;let n=$('supportNumberInput').value.trim();if(n&&!/^[+0-9 ()-]{7,20}$/.test(n)){alert('Enter a valid support phone number.');return}localStorage.setItem('pc_support_number',n);alert('Support number saved and will appear on all role dashboards.');render()}
+function supportEmail(){try{return localStorage.getItem('pc_support_email')||''}catch(e){return ''}}
+function saveSupportNumber(){if($('role').value!=='Owner')return;let n=$('supportNumberInput').value.trim(),em=$('supportEmailInput').value.trim();if(n&&!/^[+0-9 ()-]{7,20}$/.test(n)){alert('Enter a valid support phone number.');return}if(em&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)){alert('Enter a valid support email.');return}localStorage.setItem('pc_support_number',n);localStorage.setItem('pc_support_email',em);pcToast('Company support phone and email saved for all roles.');render()}
 function editCampaign(id){
  if($('role').value!=='Owner')return;
  const b=db.campaigns.find(x=>x.id===id);if(!b)return;
