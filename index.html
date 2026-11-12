@@ -1504,74 +1504,160 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
 }
 </style>
 
-<script id="pc-all-role-demo-login">
-(function(){
+<script id="pc-role-locked-auth">
+(async function(){
+ const SUPABASE_URL='https://istabxhkwwcahsfelvjh.supabase.co';
+ const SUPABASE_KEY='sb_publishable_iRk2r6T-vRvRKsNePsb7pw_jLNSZSFq';
+ const PORTALS={admin:{label:'Admin',appRole:'Owner',dbRoles:['admin','owner']},employee:{label:'Employee',appRole:'Employee',dbRoles:['employee']},rm:{label:'RM',appRole:'RM',dbRoles:['rm']},agent:{label:'Agent',appRole:'Agent',dbRoles:['agent']},customer:{label:'Customer',appRole:'Customer',dbRoles:['customer']}};
+ const params=new URLSearchParams(location.search);
+ let portalKey=(params.get('portal')||'').toLowerCase(),portal=PORTALS[portalKey]||null;
+ let supabase=null,authUser=null,loginMode='password',pendingEmail='',pendingPhone='';
  const style=document.createElement('style');
  style.textContent=`
- #pcLoginGate{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 15% 10%,#dbeafe 0,transparent 34%),radial-gradient(circle at 90% 90%,#ccfbf1 0,transparent 32%),linear-gradient(135deg,#eef4ff,#f8fbff 55%,#edf7f6);font-family:Inter,"Segoe UI",Arial,sans-serif}
+ #pcLoginGate{position:fixed;inset:0;z-index:999999;display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 12% 8%,#dbeafe 0,transparent 34%),radial-gradient(circle at 92% 88%,#ccfbf1 0,transparent 32%),linear-gradient(135deg,#edf4ff,#f8fbff 55%,#edf8f6);font-family:Inter,"Segoe UI",Arial,sans-serif;color:#142b4c}
  #pcLoginGate *{box-sizing:border-box}
- .pc-login-card{width:min(100%,980px);min-height:570px;display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid #dce6f2;border-radius:25px;overflow:hidden;box-shadow:0 28px 80px #102b501f}
- .pc-login-brand{position:relative;overflow:hidden;padding:48px 42px;color:white;background:linear-gradient(150deg,#0c2344,#123c70 62%,#087e83);display:flex;flex-direction:column;justify-content:space-between}
- .pc-login-brand:before,.pc-login-brand:after{content:"";position:absolute;border:1px solid #ffffff20;border-radius:50%;width:360px;height:360px;right:-150px;top:-110px}
- .pc-login-brand:after{width:260px;height:260px;right:-90px;top:-60px}
- .pc-login-logo{display:flex;align-items:center;gap:12px;font-size:25px;font-weight:850;letter-spacing:-.8px;position:relative;z-index:1}
- .pc-login-shield{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#14b8a6,#1680e8);font-size:25px;box-shadow:0 8px 20px #001a3c55}
- .pc-login-brand h1{font-size:35px;line-height:1.13;letter-spacing:-1.2px;margin:42px 0 14px;position:relative;z-index:1}
- .pc-login-brand p{font-size:14px;line-height:1.8;color:#d6e6f7;max-width:360px;position:relative;z-index:1}
- .pc-login-feature{display:grid;gap:13px;margin-top:32px;position:relative;z-index:1}
- .pc-login-feature span{display:flex;align-items:center;gap:10px;color:#e7f1ff;font-size:13px}
- .pc-login-feature i{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:#ffffff18;color:#75e3d4;font-style:normal}
- .pc-login-brand-foot{font-size:11px;color:#b8cde5;position:relative;z-index:1}
- .pc-login-form{padding:48px 46px;display:flex;flex-direction:column;justify-content:center}
- .pc-login-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#0b8d86;text-transform:uppercase}
- .pc-login-form h2{font-size:29px;letter-spacing:-.8px;color:#142b4c;margin:9px 0 7px}
- .pc-login-sub{font-size:13px;color:#71819a;margin:0 0 27px}
- .pc-login-label{display:block;font-size:12px;font-weight:750;color:#344b69;margin:15px 0 7px}
- .pc-login-input{width:100%;height:47px;border:1px solid #d9e3ef;border-radius:11px;padding:0 13px;background:#fbfdff;color:#172f50;font-size:14px;outline:none}
- .pc-login-input:focus{border-color:#3484e8;box-shadow:0 0 0 3px #3484e81c}
- .pc-login-submit{height:49px;width:100%;border:0;border-radius:11px;margin-top:23px;background:linear-gradient(100deg,#1769e0,#087fbd);color:white;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 9px 20px #1769e02b}
- .pc-login-submit:hover{filter:brightness(1.06);transform:translateY(-1px)}
- .pc-login-demo-note{margin-top:17px;padding:11px 12px;border:1px solid #f2d79a;background:#fff8e8;border-radius:10px;color:#87520b;font-size:11px;line-height:1.55}
- .pc-login-secure{display:flex;gap:7px;align-items:center;color:#8291a5;font-size:10px;margin-top:18px}
- #pcLogoutBtn{white-space:nowrap}
- @media(max-width:720px){#pcLoginGate{padding:12px}.pc-login-card{grid-template-columns:1fr;min-height:0;max-width:460px}.pc-login-brand{padding:22px 24px 18px;min-height:170px}.pc-login-brand h1{font-size:23px;margin:20px 0 5px}.pc-login-brand p,.pc-login-feature,.pc-login-brand-foot{display:none}.pc-login-logo{font-size:20px}.pc-login-shield{width:38px;height:38px}.pc-login-form{padding:25px 24px 28px}.pc-login-form h2{font-size:25px}}
+ .pc-auth-card{width:min(100%,980px);min-height:590px;display:grid;grid-template-columns: .94fr 1.06fr;background:#fff;border:1px solid #dce6f2;border-radius:25px;overflow:hidden;box-shadow:0 28px 80px #102b501f}
+ .pc-auth-brand{position:relative;overflow:hidden;padding:46px 40px;color:white;background:linear-gradient(150deg,#0c2344,#123c70 62%,#087e83);display:flex;flex-direction:column;justify-content:space-between}
+ .pc-auth-brand:before,.pc-auth-brand:after{content:"";position:absolute;border:1px solid #ffffff20;border-radius:50%;width:360px;height:360px;right:-150px;top:-110px}
+ .pc-auth-brand:after{width:260px;height:260px;right:-90px;top:-60px}
+ .pc-auth-logo{display:flex;align-items:center;gap:12px;font-size:25px;font-weight:850;letter-spacing:-.8px;position:relative;z-index:1}
+ .pc-auth-shield{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#14b8a6,#1680e8);font-size:25px;box-shadow:0 8px 20px #001a3c55}
+ .pc-auth-brand h1{font-size:34px;line-height:1.13;letter-spacing:-1.2px;margin:38px 0 14px;position:relative;z-index:1}
+ .pc-auth-brand p{font-size:14px;line-height:1.8;color:#d6e6f7;max-width:360px;position:relative;z-index:1}
+ .pc-auth-features{display:grid;gap:13px;margin-top:28px;position:relative;z-index:1}
+ .pc-auth-features span{display:flex;align-items:center;gap:10px;color:#e7f1ff;font-size:13px}
+ .pc-auth-features i{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:#ffffff18;color:#75e3d4;font-style:normal}
+ .pc-auth-foot{font-size:11px;color:#b8cde5;position:relative;z-index:1}
+ .pc-auth-main{padding:42px 44px;display:flex;flex-direction:column;justify-content:center}
+ .pc-auth-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#0b8d86;text-transform:uppercase}
+ .pc-auth-main h2{font-size:28px;letter-spacing:-.8px;color:#142b4c;margin:9px 0 7px}
+ .pc-auth-sub{font-size:13px;color:#71819a;margin:0 0 20px;line-height:1.6}
+ .pc-auth-label{display:block;font-size:12px;font-weight:750;color:#344b69;margin:13px 0 7px}
+ .pc-auth-input{width:100%;height:47px;border:1px solid #d9e3ef;border-radius:11px;padding:0 13px;background:#fbfdff;color:#172f50;font-size:14px;outline:none}
+ .pc-auth-input:focus{border-color:#3484e8;box-shadow:0 0 0 3px #3484e81c}
+ .pc-auth-btn{height:48px;width:100%;border:0;border-radius:11px;margin-top:19px;background:linear-gradient(100deg,#1769e0,#087fbd);color:white;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 9px 20px #1769e02b}
+ .pc-auth-btn:disabled{opacity:.6;cursor:wait}
+ .pc-auth-secondary{border:0;background:none;color:#1769d5;font-size:12px;font-weight:750;cursor:pointer;padding:10px 8px}
+ .pc-auth-row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+ .pc-auth-alert{margin-top:13px;padding:10px 12px;border-radius:10px;font-size:12px;line-height:1.5;display:none}
+ .pc-auth-alert.error{display:block;background:#fff0f0;border:1px solid #f6caca;color:#a52c35}
+ .pc-auth-alert.info{display:block;background:#eff6ff;border:1px solid #cfe0fb;color:#245a9c}
+ .pc-auth-alert.success{display:block;background:#ecfdf5;border:1px solid #b9ebd0;color:#08784f}
+ .pc-auth-note{margin-top:15px;padding:10px 12px;border:1px solid #d9e6f4;background:#f5f9ff;border-radius:10px;color:#637792;font-size:11px;line-height:1.55}
+ .pc-auth-portals{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:20px}
+ .pc-auth-portal{border:1px solid #dce6f2;background:#fbfdff;border-radius:13px;padding:16px;text-align:left;cursor:pointer;color:#173456;transition:.15s}
+ .pc-auth-portal:hover{border-color:#4b91e9;background:#f1f7ff;transform:translateY(-1px)}
+ .pc-auth-portal strong{display:block;font-size:14px}.pc-auth-portal small{display:block;color:#71819a;font-size:11px;margin-top:5px}
+ .pc-auth-portal.admin{grid-column:1/-1;background:linear-gradient(100deg,#eff6ff,#effcf9);border-color:#bcd8ef}
+ .pc-auth-hide{display:none!important}
+ @media(max-width:720px){#pcLoginGate{padding:10px}.pc-auth-card{grid-template-columns:1fr;min-height:0;max-width:470px}.pc-auth-brand{padding:20px 23px 17px;min-height:155px}.pc-auth-brand h1{font-size:22px;margin:17px 0 5px}.pc-auth-brand p,.pc-auth-features,.pc-auth-foot{display:none}.pc-auth-logo{font-size:20px}.pc-auth-shield{width:38px;height:38px}.pc-auth-main{padding:24px 23px 27px}.pc-auth-main h2{font-size:24px}.pc-auth-portals{gap:8px}.pc-auth-portal{padding:13px}}
  `;
  document.head.appendChild(style);
- const gate=document.createElement('div');gate.id='pcLoginGate';
- gate.innerHTML='<div class="pc-login-card"><section class="pc-login-brand"><div class="pc-login-logo"><span class="pc-login-shield">🛡</span><span>PolicyCrop<small style="display:block;font-size:9px;letter-spacing:2px;font-weight:500;color:#b9d4ed;margin-top:2px">MOTOR INSURANCE CRM</small></span></div><div><h1>One platform.<br>Every role.</h1><p>Manage motor insurance business, team operations, renewals, claims and customer relationships from one professional workspace.</p><div class="pc-login-feature"><span><i>✓</i> Role-based workspace access</span><span><i>✓</i> Policy and renewal management</span><span><i>✓</i> Team tasks and claim follow-ups</span></div></div><div class="pc-login-brand-foot">PolicyCrop · Motor Insurance CRM</div></section><section class="pc-login-form"><div class="pc-login-eyebrow">Welcome back</div><h2>Sign in to your account</h2><p class="pc-login-sub">Choose your account type and profile to continue.</p><form id="pcLoginForm"><label class="pc-login-label" for="pcLoginRole">Login as</label><select class="pc-login-input" id="pcLoginRole"><option>Owner</option><option>Employee</option><option>RM</option><option>Agent</option><option>Customer</option></select><label class="pc-login-label" for="pcLoginUser">User / Account</label><select class="pc-login-input" id="pcLoginUser"></select><label class="pc-login-label" for="pcLoginPassword">Password</label><input class="pc-login-input" id="pcLoginPassword" type="password" placeholder="Demo password (not verified)" autocomplete="current-password"><button class="pc-login-submit" type="submit">Continue to PolicyCrop&nbsp; →</button></form><div class="pc-login-demo-note"><b>Demo Mode:</b> This is a front-end login interface. Passwords are not verified and role selection is not secure authentication. Do not enter real passwords or customer documents until a secure backend login is connected.</div><div class="pc-login-secure">🛡️ &nbsp;Secure authentication and cloud access are not configured yet.</div></section></div>';
- document.body.appendChild(gate);
- const roleSel=gate.querySelector('#pcLoginRole'),userSel=gate.querySelector('#pcLoginUser');
- function usersFor(role){
-  if(role==='Owner')return ['Vipin Gupta'];
-  if(role==='Customer')return (db.customers||[]).map(x=>x.name).filter(Boolean);
-  return (db.team||[]).filter(x=>x.role===role&&String(x.status||'Active').toLowerCase()!=='resigned').map(x=>x.name).filter(Boolean);
+ const gate=document.createElement('div');gate.id='pcLoginGate';document.body.appendChild(gate);
+ function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+ function shell(main){gate.innerHTML='<div class="pc-auth-card"><section class="pc-auth-brand"><div class="pc-auth-logo"><span class="pc-auth-shield">🛡</span><span>PolicyCrop<small style="display:block;font-size:9px;letter-spacing:2px;font-weight:500;color:#b9d4ed;margin-top:2px">MOTOR INSURANCE CRM</small></span></div><div><h1>One platform.<br>Every protection.</h1><p>Manage motor insurance business, team operations, renewals, claims and customer relationships in one secure workspace.</p><div class="pc-auth-features"><span><i>✓</i> Role-based account access</span><span><i>✓</i> Policy and renewal management</span><span><i>✓</i> Secure email verification</span></div></div><div class="pc-auth-foot">PolicyCrop · Motor Insurance CRM</div></section><section class="pc-auth-main">'+main+'</section></div>';}
+ function showPortalChooser(){
+  shell('<div class="pc-auth-eyebrow">Secure workspace access</div><h2>Select your login portal</h2><p class="pc-auth-sub">Choose the account type assigned to you. Your access stays locked to that role after login.</p><div class="pc-auth-portals"><button class="pc-auth-portal admin" data-portal="admin"><strong>Admin Portal</strong><small>Full business administration</small></button><button class="pc-auth-portal" data-portal="employee"><strong>Employee Portal</strong><small>Assigned operations</small></button><button class="pc-auth-portal" data-portal="rm"><strong>RM Portal</strong><small>Team and agent management</small></button><button class="pc-auth-portal" data-portal="agent"><strong>Agent Portal</strong><small>Sales and policy services</small></button><button class="pc-auth-portal" data-portal="customer"><strong>Customer Portal</strong><small>Your policies and support</small></button></div><div class="pc-auth-note">Use only the portal assigned to your account. The selected role cannot be changed from inside the dashboard.</div>');
+  gate.querySelectorAll('[data-portal]').forEach(b=>b.addEventListener('click',()=>{portalKey=b.dataset.portal;portal=PORTALS[portalKey];history.replaceState({},'',location.pathname+'?portal='+portalKey);showLogin();}));
  }
- function fillUsers(preferred){
-  const list=usersFor(roleSel.value);userSel.innerHTML='';
-  (list.length?list:[roleSel.value+' Demo']).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;userSel.appendChild(o)});
-  if(preferred&&[...userSel.options].some(o=>o.value===preferred))userSel.value=preferred;
+ function showLogin(){
+  const label=portal.label;
+  shell('<div class="pc-auth-eyebrow">'+esc(label)+' secure access</div><h2>'+esc(label)+' Login</h2><p class="pc-auth-sub">Sign in using your registered mobile number or email. This portal is locked to '+esc(label)+'.</p><div id="pcAuthForm"><label class="pc-auth-label" for="pcLoginIdentifier">Mobile Number or Email ID</label><input class="pc-auth-input" id="pcLoginIdentifier" autocomplete="username" placeholder="Enter registered mobile or email" required><div id="pcLinkedEmailWrap" class="pc-auth-hide"><label class="pc-auth-label" for="pcLinkedEmail">Registered Email (for verification)</label><input class="pc-auth-input" id="pcLinkedEmail" type="email" autocomplete="email" placeholder="Enter email linked to your mobile"></div><div id="pcPasswordWrap"><label class="pc-auth-label" for="pcLoginPassword">Password</label><input class="pc-auth-input" id="pcLoginPassword" type="password" autocomplete="current-password" placeholder="Enter your password"></div><div id="pcOtpWrap" class="pc-auth-hide"><label class="pc-auth-label" for="pcLoginOtp">Email OTP</label><input class="pc-auth-input" id="pcLoginOtp" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter verification code sent to email"></div><div id="pcNewPasswordWrap" class="pc-auth-hide"><label class="pc-auth-label" for="pcNewPassword">Set New Password</label><input class="pc-auth-input" id="pcNewPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Minimum 8 characters"><label class="pc-auth-label" for="pcConfirmPassword">Confirm New Password</label><input class="pc-auth-input" id="pcConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Re-enter new password"></div><button class="pc-auth-btn" id="pcAuthSubmit" type="button">Login Securely</button><div class="pc-auth-row"><button class="pc-auth-secondary" id="pcUseOtp" type="button">Login with Email OTP</button><button class="pc-auth-secondary" id="pcSetPassword" type="button">Set / Forgot Password</button></div><div id="pcAuthAlert" class="pc-auth-alert"></div></div><div class="pc-auth-note">Email OTP is sent to the registered email address. If you enter a mobile number, also provide the email linked to that mobile account. Only Admin can provision and assign user roles.</div>');
+  const $=id=>gate.querySelector('#'+id),identifier=$('pcLoginIdentifier'),linkedWrap=$('pcLinkedEmailWrap'),linkedEmail=$('pcLinkedEmail'),passwordWrap=$('pcPasswordWrap'),otpWrap=$('pcOtpWrap'),newPassWrap=$('pcNewPasswordWrap'),submit=$('pcAuthSubmit'),alertBox=$('pcAuthAlert');
+  function isEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);}
+  function isPhone(v){return /^[+\d][\d\s()-]{7,18}$/.test(v);}
+  function resolveEmail(){const v=identifier.value.trim();if(isEmail(v))return v.toLowerCase();if(isPhone(v)&&isEmail(linkedEmail.value.trim()))return linkedEmail.value.trim().toLowerCase();throw new Error('Valid email enter karein. Mobile number ke saath us account ka registered email bhi zaroori hai.');}
+  function showAlert(msg,type='error'){alertBox.className='pc-auth-alert '+type;alertBox.textContent=msg;}
+  function setMode(mode){loginMode=mode;passwordWrap.classList.toggle('pc-auth-hide',mode!=='password');otpWrap.classList.toggle('pc-auth-hide',mode==='password');newPassWrap.classList.toggle('pc-auth-hide',mode!=='setpassword');submit.textContent=mode==='password'?'Login Securely':mode==='otp'?'Send Email OTP':mode==='verifyotp'?'Verify OTP & Login':mode==='setpassword'?'Send OTP to Set Password':mode==='setpasswordverify'?'Verify OTP & Set Password':'Continue';showAlert(mode==='setpassword'?'Password set karne ke liye registered email par OTP bheja jayega.':'','info');}
+  identifier.addEventListener('input',()=>{const phone=isPhone(identifier.value.trim())&&!isEmail(identifier.value.trim());linkedWrap.classList.toggle('pc-auth-hide',!phone);});
+  $('pcUseOtp').addEventListener('click',()=>setMode('otp'));
+  $('pcSetPassword').addEventListener('click',()=>setMode('setpassword'));
+  async function verifyRoleAndEnter(user){
+   const {data:memberRows,error}=await supabase.from('org_members').select('role,organization_id').eq('user_id',user.id).limit(10);
+   if(error)throw new Error('Role permission verify nahi ho paya: '+error.message);
+   const member=(memberRows||[]).find(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase()));
+   if(!member)throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+   const phone=identifier.value.trim();
+   if(isPhone(phone)){
+    const {data:profile,error:pErr}=await supabase.from('profiles').select('phone').eq('id',user.id).maybeSingle();
+    if(pErr)throw new Error('Mobile verification check failed: '+pErr.message);
+    const norm=x=>String(x||'').replace(/\D/g,'').slice(-10);
+    if(!profile||!profile.phone||norm(profile.phone)!==norm(phone))throw new Error('Yeh mobile number is account ke verified profile se match nahi karta.');
+   }
+   const appRole=portal.appRole,roleEl=document.getElementById('role'),identity=document.getElementById('pcIdentity');
+   if(!roleEl||!identity)throw new Error('Application workspace load nahi hua. Page refresh karein.');
+   roleEl.value=appRole;roleEl.dispatchEvent(new Event('change',{bubbles:true}));
+   const displayName=user.user_metadata?.full_name||user.email||user.phone||'User';
+   if(![...identity.options].some(o=>o.value===displayName)){const opt=document.createElement('option');opt.value=displayName;opt.textContent=displayName;identity.appendChild(opt);}
+   identity.value=displayName;identity.dispatchEvent(new Event('change',{bubbles:true}));
+   try{sessionStorage.setItem('pc_locked_portal',portalKey);}catch(e){}
+   gate.style.display='none';
+   lockDashboardRole();
+  }
+  async function sendOtp(forPassword){
+   const email=resolveEmail();pendingEmail=email;pendingPhone=isPhone(identifier.value.trim())?identifier.value.trim():'';
+   const {error}=await supabase.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+   if(error)throw error;
+   setMode(forPassword?'setpasswordverify':'verifyotp');
+   showAlert('OTP '+email+' par bhej diya gaya hai. Inbox aur Spam folder check karein.','success');
+  }
+  submit.addEventListener('click',async()=>{
+   submit.disabled=true;const old=submit.textContent;showAlert('Please wait...','info');
+   try{
+    if(loginMode==='password'){
+     const email=resolveEmail(),pass=$('pcLoginPassword').value;
+     if(!pass)throw new Error('Password enter karein.');
+     const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});if(error)throw error;
+     await verifyRoleAndEnter(data.user);
+    }else if(loginMode==='otp'||loginMode==='setpassword'){
+     await sendOtp(loginMode==='setpassword');
+    }else if(loginMode==='verifyotp'||loginMode==='setpasswordverify'){
+     const email=pendingEmail||resolveEmail(),token=$('pcLoginOtp').value.trim();
+     if(!/^\d{6,8}$/.test(token))throw new Error('Valid email OTP enter karein.');
+     const {data,error}=await supabase.auth.verifyOtp({email,token,type:'email'});if(error)throw error;
+     if(loginMode==='setpasswordverify'){
+      const p=$('pcNewPassword').value,q=$('pcConfirmPassword').value;
+      if(p.length<8)throw new Error('Password kam se kam 8 characters ka hona chahiye.');
+      if(p!==q)throw new Error('Password aur Confirm Password match nahi kar rahe.');
+      const {error:updateError}=await supabase.auth.updateUser({password:p});if(updateError)throw updateError;
+      showAlert('Password successfully set ho gaya. Ab aap login ho rahe hain.','success');
+     }
+     await verifyRoleAndEnter(data.user);
+    }
+   }catch(err){showAlert(err.message||'Login failed. Please try again.','error');}
+   finally{submit.disabled=false;submit.textContent=loginMode==='password'?'Login Securely':loginMode==='otp'?'Send Email OTP':loginMode==='verifyotp'?'Verify OTP & Login':loginMode==='setpassword'?'Send OTP to Set Password':loginMode==='setpasswordverify'?'Verify OTP & Set Password':old;}
+  });
+  setMode('password');
  }
- roleSel.addEventListener('change',()=>fillUsers());fillUsers();
- function enter(role,name){
-  const main=document.querySelector('.app');if(!main)return;
-  const r=document.getElementById('role'),identity=document.getElementById('pcIdentity');
-  r.value=role;r.dispatchEvent(new Event('change',{bubbles:true}));
-  if(![...identity.options].some(o=>o.value===name)){const o=document.createElement('option');o.value=name;o.textContent=name;identity.appendChild(o)}
-  identity.value=name;identity.dispatchEvent(new Event('change',{bubbles:true}));
-  try{localStorage.setItem('pc_demo_login_session',JSON.stringify({role,name,at:Date.now()}))}catch(e){}
-  gate.style.display='none';
+ function lockDashboardRole(){
+  const role=document.getElementById('role'),identity=document.getElementById('pcIdentity');
+  [role,identity].forEach(el=>{if(el){el.disabled=true;el.classList.add('pc-auth-hide');el.setAttribute('aria-hidden','true');}});
+  const top=document.querySelector('.topright');
+  if(top&&!document.getElementById('pcSecureLogout')){
+   const b=document.createElement('button');b.id='pcSecureLogout';b.type='button';b.className='btn';b.textContent='Logout';
+   b.addEventListener('click',async()=>{await supabase.auth.signOut();try{sessionStorage.removeItem('pc_locked_portal')}catch(e){}location.href=location.pathname+'?portal='+portalKey;});
+   top.insertBefore(b,top.firstChild);
+  }
  }
- gate.querySelector('#pcLoginForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  const role=roleSel.value,name=userSel.value,password=gate.querySelector('#pcLoginPassword').value;
-  if(!name||!password){alert('Please select your account and enter a demo password.');return}
-  enter(role,name);
- });
- const logout=document.createElement('button');logout.type='button';logout.id='pcLogoutBtn';logout.className='btn';logout.textContent='Logout';
- logout.addEventListener('click',()=>{try{localStorage.removeItem('pc_demo_login_session')}catch(e){}gate.style.display='grid';gate.querySelector('#pcLoginPassword').value='';fillUsers()});
- const top=document.querySelector('.topright');if(top)top.insertBefore(logout,top.firstChild);
- let session=null;try{session=JSON.parse(localStorage.getItem('pc_demo_login_session')||'null')}catch(e){}
- if(session&&session.role&&session.name){roleSel.value=session.role;fillUsers(session.name);gate.style.display='none';setTimeout(()=>enter(session.role,session.name),0)}
- else gate.style.display='grid';
+ // Replace user-facing Owner wording with Admin without changing internal permission values.
+ const replaceOwnerText=node=>{if(node.nodeType===Node.TEXT_NODE&&/\bowner\b/i.test(node.nodeValue))node.nodeValue=node.nodeValue.replace(/\bowner\b/gi,'Admin');};
+ const textObserver=new MutationObserver(ms=>ms.forEach(m=>{if(m.type==='characterData')replaceOwnerText(m.target);m.addedNodes?.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)replaceOwnerText(n);else if(n.nodeType===Node.ELEMENT_NODE){const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT);while(w.nextNode())replaceOwnerText(w.currentNode);}})}));
+ textObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+ const initialWalker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);while(initialWalker.nextNode())replaceOwnerText(initialWalker.currentNode);
+ try{
+  const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.117.1');
+  supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ }catch(e){shell('<div class="pc-auth-eyebrow">Authentication unavailable</div><h2>Secure login could not start</h2><p class="pc-auth-sub">Supabase authentication library load nahi ho payi. Internet connection check karke refresh karein.</p>');return;}
+ if(!portal){showPortalChooser();return;}
+ const {data:{session}}=await supabase.auth.getSession();
+ if(session?.user){
+  try{const fakeIdentifier=session.user.email||'';if(!fakeIdentifier)throw new Error('Account email missing.');}
+  catch(e){await supabase.auth.signOut();}
+  // On refresh, keep the original role locked in the same portal and validate membership again.
+  const {data:userData}=await supabase.auth.getUser();
+  if(userData?.user){const roleEl=document.getElementById('role'),identity=document.getElementById('pcIdentity');if(roleEl&&identity){const {data:rows}=await supabase.from('org_members').select('role').eq('user_id',userData.user.id).limit(10);const m=(rows||[]).find(x=>portal.dbRoles.includes(String(x.role||'').toLowerCase()));if(m){roleEl.value=portal.appRole;roleEl.dispatchEvent(new Event('change',{bubbles:true}));const nm=userData.user.user_metadata?.full_name||userData.user.email||'User';if(![...identity.options].some(o=>o.value===nm)){const o=document.createElement('option');o.value=nm;o.textContent=nm;identity.appendChild(o);}identity.value=nm;identity.dispatchEvent(new Event('change',{bubbles:true}));gate.style.display='none';lockDashboardRole();return;}}}
+  await supabase.auth.signOut();
+ }
+ showLogin();
 })();
 </script>
