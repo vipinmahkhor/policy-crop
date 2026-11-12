@@ -1588,12 +1588,12 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
      const p=$('pcBootstrapPassword').value,q=$('pcBootstrapConfirm').value;
      if(p.length<8)throw new Error('Password kam se kam 8 characters ka rakhein.');
      if(p!==q)throw new Error('Dono password match nahi kar rahe.');
-     const {data,error}=await supabase.auth.signUp({email:ADMIN_EMAIL,password:p,options:{data:{full_name:'Vipin Gupta'}}});
+     const {data,error}=await supabase.auth.signUp({email:ADMIN_EMAIL,password:p,options:{data:{full_name:'Vipin Gupta'},emailRedirectTo:location.origin+location.pathname+'?portal=admin'}});
      if(error)throw error;
      bootstrapStage='verify';
      $('pcBootstrapOtpLabel').classList.remove('pc-auth-hide');$('pcBootstrapOtp').classList.remove('pc-auth-hide');
      bootstrapSubmit.textContent='Verify OTP & Activate Admin';
-     showAlert('Signup verification OTP '+ADMIN_EMAIL+' par bheja gaya hai. Inbox/Spam check karein.','success');
+     showAlert('Verification email '+ADMIN_EMAIL+' par bheja gaya hai. Agar email mein OTP aaye to neeche daalein; agar confirmation link aaye to Supabase Email Template ko {{ .Token }} par set karna hoga. Link ab localhost ke bajay PolicyCrop par return karega.','success');
      if(data.session?.user){
       const {error:bootErr}=await supabase.rpc('bootstrap_first_admin');
       if(bootErr)throw bootErr;
@@ -1695,7 +1695,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   catch(e){await supabase.auth.signOut();}
   // On refresh, keep the original role locked in the same portal and validate membership again.
   const {data:userData}=await supabase.auth.getUser();
-  if(userData?.user){const roleEl=document.getElementById('role'),identity=document.getElementById('pcIdentity');if(roleEl&&identity){const {data:rows}=await supabase.from('org_members').select('role').eq('user_id',userData.user.id).limit(10);const m=(rows||[]).find(x=>portal.dbRoles.includes(String(x.role||'').toLowerCase()));if(m){roleEl.value=portal.appRole;roleEl.dispatchEvent(new Event('change',{bubbles:true}));const nm=userData.user.user_metadata?.full_name||userData.user.email||'User';if(![...identity.options].some(o=>o.value===nm)){const o=document.createElement('option');o.value=nm;o.textContent=nm;identity.appendChild(o);}identity.value=nm;identity.dispatchEvent(new Event('change',{bubbles:true}));gate.style.display='none';lockDashboardRole();return;}}}
+  if(userData?.user){const roleEl=document.getElementById('role'),identity=document.getElementById('pcIdentity');if(roleEl&&identity){let {data:rows}=await supabase.from('org_members').select('role').eq('user_id',userData.user.id).limit(10);let m=(rows||[]).find(x=>portal.dbRoles.includes(String(x.role||'').toLowerCase()));if(!m&&portalKey==='admin'&&String(userData.user.email||'').toLowerCase()==='vipinmahkhor@gmail.com'){const {data:orgs}=await supabase.from('organizations').select('id').limit(1);if(!orgs||orgs.length===0){const {error:bootErr}=await supabase.rpc('bootstrap_first_admin');if(!bootErr){const refreshed=await supabase.from('org_members').select('role').eq('user_id',userData.user.id).limit(10);rows=refreshed.data||[];m=rows.find(x=>portal.dbRoles.includes(String(x.role||'').toLowerCase()));}}}if(m){roleEl.value=portal.appRole;roleEl.dispatchEvent(new Event('change',{bubbles:true}));const nm=userData.user.user_metadata?.full_name||userData.user.email||'User';if(![...identity.options].some(o=>o.value===nm)){const o=document.createElement('option');o.value=nm;o.textContent=nm;identity.appendChild(o);}identity.value=nm;identity.dispatchEvent(new Event('change',{bubbles:true}));gate.style.display='none';lockDashboardRole();return;}}}
   await supabase.auth.signOut();
  }
  showLogin();
