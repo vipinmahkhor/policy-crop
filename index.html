@@ -1756,7 +1756,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
       $('pcSetupPhone').value=profile?.phone||'';
       showAlert('Email OTP verified. Ab password aur profile complete karein.','success');return;
      }
-     await verifyRoleAndEnter(data.user);
+     await verifyRoleAndEnter(verifiedUser);
     }else if(loginMode==='setnewpassword'){
      const p=$('pcNewPassword').value,q=$('pcConfirmPassword').value;
      if(p.length<8)throw new Error('Password kam se kam 8 characters ka hona chahiye.');if(p!==q)throw new Error('Password aur Confirm Password match nahi kar rahe.');
