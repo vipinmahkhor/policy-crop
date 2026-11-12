@@ -1503,3 +1503,75 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
  .pc-lead-ticker-detail{font-size:9px!important}
 }
 </style>
+
+<script id="pc-all-role-demo-login">
+(function(){
+ const style=document.createElement('style');
+ style.textContent=`
+ #pcLoginGate{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:22px;background:radial-gradient(circle at 15% 10%,#dbeafe 0,transparent 34%),radial-gradient(circle at 90% 90%,#ccfbf1 0,transparent 32%),linear-gradient(135deg,#eef4ff,#f8fbff 55%,#edf7f6);font-family:Inter,"Segoe UI",Arial,sans-serif}
+ #pcLoginGate *{box-sizing:border-box}
+ .pc-login-card{width:min(100%,980px);min-height:570px;display:grid;grid-template-columns:1fr 1fr;background:#fff;border:1px solid #dce6f2;border-radius:25px;overflow:hidden;box-shadow:0 28px 80px #102b501f}
+ .pc-login-brand{position:relative;overflow:hidden;padding:48px 42px;color:white;background:linear-gradient(150deg,#0c2344,#123c70 62%,#087e83);display:flex;flex-direction:column;justify-content:space-between}
+ .pc-login-brand:before,.pc-login-brand:after{content:"";position:absolute;border:1px solid #ffffff20;border-radius:50%;width:360px;height:360px;right:-150px;top:-110px}
+ .pc-login-brand:after{width:260px;height:260px;right:-90px;top:-60px}
+ .pc-login-logo{display:flex;align-items:center;gap:12px;font-size:25px;font-weight:850;letter-spacing:-.8px;position:relative;z-index:1}
+ .pc-login-shield{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(135deg,#14b8a6,#1680e8);font-size:25px;box-shadow:0 8px 20px #001a3c55}
+ .pc-login-brand h1{font-size:35px;line-height:1.13;letter-spacing:-1.2px;margin:42px 0 14px;position:relative;z-index:1}
+ .pc-login-brand p{font-size:14px;line-height:1.8;color:#d6e6f7;max-width:360px;position:relative;z-index:1}
+ .pc-login-feature{display:grid;gap:13px;margin-top:32px;position:relative;z-index:1}
+ .pc-login-feature span{display:flex;align-items:center;gap:10px;color:#e7f1ff;font-size:13px}
+ .pc-login-feature i{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:#ffffff18;color:#75e3d4;font-style:normal}
+ .pc-login-brand-foot{font-size:11px;color:#b8cde5;position:relative;z-index:1}
+ .pc-login-form{padding:48px 46px;display:flex;flex-direction:column;justify-content:center}
+ .pc-login-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:#0b8d86;text-transform:uppercase}
+ .pc-login-form h2{font-size:29px;letter-spacing:-.8px;color:#142b4c;margin:9px 0 7px}
+ .pc-login-sub{font-size:13px;color:#71819a;margin:0 0 27px}
+ .pc-login-label{display:block;font-size:12px;font-weight:750;color:#344b69;margin:15px 0 7px}
+ .pc-login-input{width:100%;height:47px;border:1px solid #d9e3ef;border-radius:11px;padding:0 13px;background:#fbfdff;color:#172f50;font-size:14px;outline:none}
+ .pc-login-input:focus{border-color:#3484e8;box-shadow:0 0 0 3px #3484e81c}
+ .pc-login-submit{height:49px;width:100%;border:0;border-radius:11px;margin-top:23px;background:linear-gradient(100deg,#1769e0,#087fbd);color:white;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 9px 20px #1769e02b}
+ .pc-login-submit:hover{filter:brightness(1.06);transform:translateY(-1px)}
+ .pc-login-demo-note{margin-top:17px;padding:11px 12px;border:1px solid #f2d79a;background:#fff8e8;border-radius:10px;color:#87520b;font-size:11px;line-height:1.55}
+ .pc-login-secure{display:flex;gap:7px;align-items:center;color:#8291a5;font-size:10px;margin-top:18px}
+ #pcLogoutBtn{white-space:nowrap}
+ @media(max-width:720px){#pcLoginGate{padding:12px}.pc-login-card{grid-template-columns:1fr;min-height:0;max-width:460px}.pc-login-brand{padding:22px 24px 18px;min-height:170px}.pc-login-brand h1{font-size:23px;margin:20px 0 5px}.pc-login-brand p,.pc-login-feature,.pc-login-brand-foot{display:none}.pc-login-logo{font-size:20px}.pc-login-shield{width:38px;height:38px}.pc-login-form{padding:25px 24px 28px}.pc-login-form h2{font-size:25px}}
+ `;
+ document.head.appendChild(style);
+ const gate=document.createElement('div');gate.id='pcLoginGate';
+ gate.innerHTML='<div class="pc-login-card"><section class="pc-login-brand"><div class="pc-login-logo"><span class="pc-login-shield">🛡</span><span>PolicyCrop<small style="display:block;font-size:9px;letter-spacing:2px;font-weight:500;color:#b9d4ed;margin-top:2px">MOTOR INSURANCE CRM</small></span></div><div><h1>One platform.<br>Every role.</h1><p>Manage motor insurance business, team operations, renewals, claims and customer relationships from one professional workspace.</p><div class="pc-login-feature"><span><i>✓</i> Role-based workspace access</span><span><i>✓</i> Policy and renewal management</span><span><i>✓</i> Team tasks and claim follow-ups</span></div></div><div class="pc-login-brand-foot">PolicyCrop · Motor Insurance CRM</div></section><section class="pc-login-form"><div class="pc-login-eyebrow">Welcome back</div><h2>Sign in to your account</h2><p class="pc-login-sub">Choose your account type and profile to continue.</p><form id="pcLoginForm"><label class="pc-login-label" for="pcLoginRole">Login as</label><select class="pc-login-input" id="pcLoginRole"><option>Owner</option><option>Employee</option><option>RM</option><option>Agent</option><option>Customer</option></select><label class="pc-login-label" for="pcLoginUser">User / Account</label><select class="pc-login-input" id="pcLoginUser"></select><label class="pc-login-label" for="pcLoginPassword">Password</label><input class="pc-login-input" id="pcLoginPassword" type="password" placeholder="Demo password (not verified)" autocomplete="current-password"><button class="pc-login-submit" type="submit">Continue to PolicyCrop&nbsp; →</button></form><div class="pc-login-demo-note"><b>Demo Mode:</b> This is a front-end login interface. Passwords are not verified and role selection is not secure authentication. Do not enter real passwords or customer documents until a secure backend login is connected.</div><div class="pc-login-secure">🛡️ &nbsp;Secure authentication and cloud access are not configured yet.</div></section></div>';
+ document.body.appendChild(gate);
+ const roleSel=gate.querySelector('#pcLoginRole'),userSel=gate.querySelector('#pcLoginUser');
+ function usersFor(role){
+  if(role==='Owner')return ['Vipin Gupta'];
+  if(role==='Customer')return (db.customers||[]).map(x=>x.name).filter(Boolean);
+  return (db.team||[]).filter(x=>x.role===role&&String(x.status||'Active').toLowerCase()!=='resigned').map(x=>x.name).filter(Boolean);
+ }
+ function fillUsers(preferred){
+  const list=usersFor(roleSel.value);userSel.innerHTML='';
+  (list.length?list:[roleSel.value+' Demo']).forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;userSel.appendChild(o)});
+  if(preferred&&[...userSel.options].some(o=>o.value===preferred))userSel.value=preferred;
+ }
+ roleSel.addEventListener('change',()=>fillUsers());fillUsers();
+ function enter(role,name){
+  const main=document.querySelector('.app');if(!main)return;
+  const r=document.getElementById('role'),identity=document.getElementById('pcIdentity');
+  r.value=role;r.dispatchEvent(new Event('change',{bubbles:true}));
+  if(![...identity.options].some(o=>o.value===name)){const o=document.createElement('option');o.value=name;o.textContent=name;identity.appendChild(o)}
+  identity.value=name;identity.dispatchEvent(new Event('change',{bubbles:true}));
+  try{localStorage.setItem('pc_demo_login_session',JSON.stringify({role,name,at:Date.now()}))}catch(e){}
+  gate.style.display='none';
+ }
+ gate.querySelector('#pcLoginForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const role=roleSel.value,name=userSel.value,password=gate.querySelector('#pcLoginPassword').value;
+  if(!name||!password){alert('Please select your account and enter a demo password.');return}
+  enter(role,name);
+ });
+ const logout=document.createElement('button');logout.type='button';logout.id='pcLogoutBtn';logout.className='btn';logout.textContent='Logout';
+ logout.addEventListener('click',()=>{try{localStorage.removeItem('pc_demo_login_session')}catch(e){}gate.style.display='grid';gate.querySelector('#pcLoginPassword').value='';fillUsers()});
+ const top=document.querySelector('.topright');if(top)top.insertBefore(logout,top.firstChild);
+ let session=null;try{session=JSON.parse(localStorage.getItem('pc_demo_login_session')||'null')}catch(e){}
+ if(session&&session.role&&session.name){roleSel.value=session.role;fillUsers(session.name);gate.style.display='none';setTimeout(()=>enter(session.role,session.name),0)}
+ else gate.style.display='grid';
+})();
+</script>
