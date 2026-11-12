@@ -1583,29 +1583,29 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   const ADMIN_EMAIL='vipinmahkhor@gmail.com';
   if(portalKey==='admin'){identifier.value=ADMIN_EMAIL;bootstrapStart.style.display='none';}
   bootstrapStart.addEventListener('click',()=>{
-   if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL){showAlert('First Admin setup is available only for the authorized Admin email. Enter '+ADMIN_EMAIL+' enter karein.','error');return;}
+   if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL){showAlert('First Admin setup is available only for the authorized Admin email. Enter '+ADMIN_EMAIL+' Please enter the email address.','error');return;}
    bootstrapPanel.classList.remove('pc-auth-hide');bootstrapStart.classList.add('pc-auth-hide');setMode('password');showAlert('Create the Admin password first. Then verify the email OTP.','info');
   });
   let bootstrapStage='create';
   $('pcResendAdminEmail').addEventListener('click',async()=>{
    const b=$('pcResendAdminEmail');b.disabled=true;
    try{
-    if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL)throw new Error('Authorized Admin email match nahi hua.');
+    if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL)throw new Error('The authorized Admin email does not match.');
     const {error}=await supabase.auth.resend({type:'signup',email:ADMIN_EMAIL,options:{emailRedirectTo:location.origin+location.pathname+'?portal=admin'}});
     if(error)throw error;
-    showAlert('Naya verification email bhej diya gaya hai. Purana link use na karein.','success');
-   }catch(err){showAlert(err.message||'Verification email resend nahi ho paya.','error');}
+    showAlert('A new verification email has been sent. Do not use the previous link.','success');
+   }catch(err){showAlert(err.message||'Unable to resend the verification email.','error');}
    finally{b.disabled=false;}
   });
 
   bootstrapSubmit.addEventListener('click',async()=>{
    bootstrapSubmit.disabled=true;
    try{
-    if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL)throw new Error('Authorized Admin email match nahi hua.');
+    if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL)throw new Error('The authorized Admin email does not match.');
     if(bootstrapStage==='create'){
      const p=$('pcBootstrapPassword').value,q=$('pcBootstrapConfirm').value;
      if(p.length<8)throw new Error('Password kam se kam 8 characters ka rakhein.');
-     if(p!==q)throw new Error('Dono password match nahi kar rahe.');
+     if(p!==q)throw new Error('The passwords do not match.');
      const {data,error}=await supabase.auth.signUp({email:ADMIN_EMAIL,password:p,options:{data:{full_name:'Vipin Gupta'},emailRedirectTo:location.origin+location.pathname+'?portal=admin'}});
      if(error)throw error;
      bootstrapStage='verify';
@@ -1619,7 +1619,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
      }
     }else{
      const token=$('pcBootstrapOtp').value.trim();
-     if(!/^[0-9]{6}$/.test(token))throw new Error('Exactly 6 digit OTP enter karein.');
+     if(!/^[0-9]{6}$/.test(token))throw new Error('Exactly 6 digit OTP Please enter the email address.');
      const {data,error}=await supabase.auth.verifyOtp({email:ADMIN_EMAIL,token,type:'signup'});
      if(error)throw error;
      const {error:bootErr}=await supabase.rpc('bootstrap_first_admin');
@@ -1687,7 +1687,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   `;if(!document.getElementById('pcSaStyle')){saStyle.id='pcSaStyle';document.head.appendChild(saStyle);}
   async function verifyRoleAndEnter(user){
    const {data:memberRows,error}=await supabase.from('org_members').select('role,organization_id').eq('user_id',user.id).limit(50);
-   if(error)throw new Error('Role permission verify nahi ho paya: '+error.message);
+   if(error)throw new Error('Unable to verify role permissions: '+error.message);
    const {data:platformGrant,error:platformErr}=await supabase.from('platform_admins').select('user_id,access_level').eq('user_id',user.id).maybeSingle();
    if(platformErr)throw new Error('Platform permission check failed: '+platformErr.message);
    window.pcIsPlatformAdmin=platformGrant?.access_level==='super_admin';
@@ -1697,8 +1697,8 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    const activeOrgIds=new Set((activeOrgs||[]).filter(o=>['active','trial'].includes(o.subscription_status)&&(!o.valid_until||new Date(o.valid_until)>new Date())).map(o=>o.id));
    const member=(memberRows||[]).find(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase())&&activeOrgIds.has(m.organization_id));
    if(!member&&!window.pcIsPlatformAdmin){
-    if((memberRows||[]).some(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase())))throw new Error('Aapke CRM subscription ki validity khatam ho gayi hai ya account suspend hai. Apne PolicyCrop provider se renewal karwayein.');
-    throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+    if((memberRows||[]).some(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase())))throw new Error('Your CRM subscription has expired or the account is suspended. Contact your PolicyCrop provider to renew.');
+    throw new Error('This account does not have permission to access the '+label+' portal. Ask an Admin to assign the correct role.');
    }
    if(portalKey==='admin'&&window.pcIsPlatformAdmin){
     const nav=document.getElementById('nav');
@@ -1726,7 +1726,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    const {error}=await supabase.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname+'?portal='+portalKey}});
    if(error)throw error;
    setMode(forPassword?'setpasswordverify':'verifyotp');
-   showAlert('6-digit OTP '+email+' par bhej diya gaya hai. Check your inbox and spam folder.','success');
+   showAlert('A 6-digit OTP has been sent to '+email+'. Check your inbox and spam folder.','success');
   }
   submit.addEventListener('click',async()=>{
    submit.disabled=true;const old=submit.textContent;showAlert('Please wait...','info');
@@ -1802,7 +1802,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
  try{
   const {createClient}=await import('https://esm.sh/@supabase/supabase-js@2.117.1');
   supabase=createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
- }catch(e){shell('<div class="pc-auth-eyebrow">Authentication unavailable</div><h2>Secure login could not start</h2><p class="pc-auth-sub">Supabase authentication library load nahi ho payi. Internet connection check karke refresh karein.</p>');return;}
+ }catch(e){shell('<div class="pc-auth-eyebrow">Authentication unavailable</div><h2>Secure login could not start</h2><p class="pc-auth-sub">The Supabase authentication library could not be loaded. Check your internet connection and refresh the page.</p>');return;}
  if(!portal){showPortalChooser();return;}
  const {data:{session}}=await supabase.auth.getSession();
  if(session?.user){
