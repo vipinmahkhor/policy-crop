@@ -1276,7 +1276,84 @@ try{render()}catch(err){$('view').innerHTML='<div class="panel"><h2>Dashboard lo
 function pcBootDashboard(){const target=$('view');if(!target)return;if(!target.innerHTML.trim()){try{if(!db||!Array.isArray(db.customers)||!Array.isArray(db.policies))throw new Error('Demo data needs reset');page='dashboard';render()}catch(err){target.innerHTML='<section class="panel" style="margin:16px 0"><h2>Dashboard could not load</h2><p class="sub">Reset the local demo workspace and reload.</p><button class="btn primary" onclick="resetDemo()">Reset Demo Data</button><pre style="white-space:pre-wrap;color:#b42318">'+String(err&&err.message||err)+'</pre></section>'}}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(pcBootDashboard,50),{once:true});else setTimeout(pcBootDashboard,50);
 
-</script>\n<style>\n.quote-detail-page{max-width:1500px;margin:0 auto}.quote-page-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px 15px;background:#fff;border:1px solid var(--line);border-radius:13px}.quote-detail-page .quote-detail-top{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;margin-bottom:16px}.quote-detail-page .quote-detail-grid{align-items:start}.quote-detail-page>.panel{margin-top:16px}.quote-detail-page .quote-chat{max-height:420px}@media(max-width:650px){.quote-page-actions{align-items:flex-start;flex-direction:column}}\n</style>\n</body></html>
+</script>\n<style>\n.quote-detail-page{max-width:1500px;margin:0 auto}.quote-page-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;padding:12px 15px;background:#fff;border:1px solid var(--line);border-radius:13px}.quote-detail-page .quote-detail-top{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;margin-bottom:16px}.quote-detail-page .quote-detail-grid{align-items:start}.quote-detail-page>.panel{margin-top:16px}.quote-detail-page .quote-chat{max-height:420px}@media(max-width:650px){.quote-page-actions{align-items:flex-start;flex-direction:column}}\n</style>\n
+<script id="PC_TASK_PRO_V1">
+(function(){
+ const $=id=>document.getElementById(id);
+ const statuses=['Pending','In Progress','Waiting for Documents','Completed','Cancelled'];
+ const priorities=['Low','Medium','High','Urgent'];
+ const categories=['Renewal Follow-up','Document Collection','Quote Preparation','Policy Issuance','Claim Follow-up','Payment Follow-up','Customer Call','Other'];
+ const role=()=> $('role')?.value||'Owner';
+ const identity=()=>String($('pcIdentity')?.value||document.querySelector('.username')?.textContent||'Vipin Gupta').split('(')[0].trim();
+ const escv=v=>typeof esc==='function'?esc(String(v??'')):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+ const isDone=t=>['Completed','Cancelled'].includes(t.status);
+ const dueDate=t=>/^\d{4}-\d{2}-\d{2}$/.test(String(t.dueDate||''))?t.dueDate:'';
+ const isOverdue=t=>!isDone(t)&&dueDate(t)&&dueDate(t)<today();
+ const nameOf=t=>t.assignedTo||t.assignee||'Unassigned';
+ const visibleTasks=()=>{const r=role(),me=identity().toLowerCase();return (db.tasks||[]).filter(t=>{if(r==='Owner'||r==='Employee')return true;return [t.assignedTo,t.assignee,t.assignedAgent,t.assignedRM,t.createdBy].filter(Boolean).some(v=>String(v).toLowerCase()===me)})};
+ const teamNames=()=>[...new Set([identity(),...(db.team||[]).map(x=>x.name).filter(Boolean)])];
+ function taskCustomerOptions(selected){return '<option value="">No linked customer</option>'+(db.customers||[]).map(c=>'<option '+(String(selected||'')===String(c.name)?'selected':'')+'>'+escv(c.name)+'</option>').join('')}
+ function taskLinks(t){const ref=t.relatedRef||'';return '<option value="">No linked record</option>'+['Policy','Claim','Vehicle','Lead'].map(kind=>{const arr=kind==='Policy'?db.policies:kind==='Claim'?db.claims:kind==='Vehicle'?db.vehicles:db.leads;return (arr||[]).map(x=>{const id=String(x.id),label=kind==='Policy'?(x.number+' · '+x.customer+' · '+x.vehicle):kind==='Claim'?(x.number+' · '+x.customer+' · '+x.vehicle):kind==='Vehicle'?(x.reg+' · '+(x.customer||'')):(x.name+' · '+(x.vehicleReg||''));const val=kind+':'+id;return '<option value="'+escv(val)+'" '+(ref===val?'selected':'')+'>'+kind+' — '+escv(label)+'</option>'}).join('')}).join('')}
+ function taskStatusBadge(t){if(isOverdue(t))return '<span class="pill red">Overdue</span>';const c=t.status==='Completed'?'':' '+(t.status==='Cancelled'?'red':t.status==='Waiting for Documents'?'orange':'');return '<span class="pill'+c+'">'+escv(t.status||'Pending')+'</span>'}
+ function renderTaskWorkspace(){
+  const list=visibleTasks(),all= db.tasks||[],pending=list.filter(t=>!isDone(t)).length,done=list.filter(t=>t.status==='Completed').length,over=list.filter(isOverdue).length,progress=list.filter(t=>t.status==='In Progress').length;
+  const rows=list.slice().sort((a,b)=>(isOverdue(b)?1:0)-(isOverdue(a)?1:0)||(dueDate(a)||'9999').localeCompare(dueDate(b)||'9999')).map(t=>{
+   const due=dueDate(t)||t.due||'—',priority=t.priority||'Medium';
+   const pclass=priority==='Urgent'||priority==='High'?'red':priority==='Low'?'':'orange';
+   return '<tr><td><b>'+escv(t.title||'Untitled task')+'</b><div class="sub">'+escv(t.category||'General')+(t.customer?' · '+escv(t.customer):'')+'</div>'+(t.description?'<div class="sub">'+escv(t.description)+'</div>':'')+'</td><td>'+escv(due)+(t.dueTime?' · '+escv(t.dueTime):'')+(isOverdue(t)?'<div style="margin-top:5px">'+taskStatusBadge(t)+'</div>':'')+'</td><td><span class="pill '+pclass+'">'+escv(priority)+'</span></td><td>'+escv(nameOf(t))+'</td><td><select aria-label="Update task status" onchange="pcTaskStatus('+Number(t.id)+',this.value)" style="min-width:145px;border:1px solid var(--line);border-radius:8px;padding:7px;background:#fff">'+statuses.map(x=>'<option '+((t.status||'Pending')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></td><td><button class="btn" onclick="pcEditTask('+Number(t.id)+')">Open / Edit</button></td></tr>'
+  }).join('');
+  const ownerTools=['Owner','Employee'].includes(role());
+  $('view').innerHTML=heading('Tasks & Follow-ups','Manage renewals, documents, quotes, policies and claim follow-ups from one workspace.',action('+ Add Task',"pcAddTask()"))+
+  '<div class="cards pc-task-stats">'+[['Total Tasks',list.length],['Open Tasks',pending],['In Progress',progress],['Overdue',over],['Completed',done]].map((x,i)=>'<div class="stat"><div class="label">'+x[0]+'</div><strong>'+x[1]+'</strong><small>'+(i===3?'Needs attention':'Current workspace')+'</small></div>').join('')+'</div>'+
+  '<div class="panel" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div><h3 style="margin:0">Task Register</h3><div class="sub">Search, filter and update work status without opening each record.</div></div><div class="sub">'+(ownerTools?'Owner / Employee view: all tasks':'Showing tasks assigned to your profile')+'</div></div>'+
+  '<div class="fieldgrid pc-task-filters"><div class="field"><label>Search Task / Customer / Vehicle</label><input id="pcTaskSearch" placeholder="Search task, customer, policy or vehicle..." oninput="pcFilterTasks()"></div><div class="field"><label>Filter Status</label><select id="pcTaskStatusFilter" onchange="pcFilterTasks()"><option value="">All Statuses</option>'+statuses.map(x=>'<option>'+x+'</option>').join('')+'</select></div><div class="field"><label>Priority</label><select id="pcTaskPriorityFilter" onchange="pcFilterTasks()"><option value="">All Priorities</option>'+priorities.map(x=>'<option>'+x+'</option>').join('')+'</select></div><div class="field"><label>Assigned To</label><select id="pcTaskAssigneeFilter" onchange="pcFilterTasks()"><option value="">All Team Members</option>'+teamNames().map(x=>'<option>'+escv(x)+'</option>').join('')+'</select></div></div>'+
+  '<div class="actions" style="margin:14px 0 0"><button class="btn" onclick="pcTaskQuickFilter(\'today\')">Due Today</button><button class="btn" onclick="pcTaskQuickFilter(\'overdue\')">Overdue</button><button class="btn" onclick="pcTaskQuickFilter(\'open\')">Open Tasks</button><button class="btn" onclick="pcTaskQuickFilter(\'all\')">Reset Filters</button></div></div>'+
+  '<div id="pcTaskTableWrap">'+table(['Task / Related Customer','Due Date','Priority','Assigned To','Status','Action'],list.length?rows.split('</tr>').filter(Boolean).map(x=>x+'</tr>'):[])+'</div>'+
+  '<div class="panel" style="margin-top:14px"><h3>Insurance Follow-up Checklist</h3><div class="sub">Suggested workflow categories: Renewal Follow-up · Document Collection · Quote Preparation · Policy Issuance · Claim Follow-up · Payment Follow-up.</div></div>';
+ }
+ window.pcAddTask=function(){pcTaskForm(null)};
+ window.pcEditTask=function(id){const t=db.tasks.find(x=>Number(x.id)===Number(id));if(t)pcTaskForm(t)};
+ function pcTaskForm(t){
+  const edit=!!t, v=(k,d='')=>escv(t?.[k]??d);
+  $('modalTitle').textContent=edit?'Update Task':'Create New Task';
+  $('modalBody').innerHTML='<div class="fieldgrid">'+
+  '<div class="field" style="grid-column:1/-1"><label>Task Title *</label><input id="pcTaskTitle" maxlength="120" required value="'+v('title')+'" placeholder="e.g. Follow up with customer for policy renewal"></div>'+
+  '<div class="field"><label>Task Category</label><select id="pcTaskCategory">'+categories.map(x=>'<option '+((t?.category||'Customer Call')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label>Priority</label><select id="pcTaskPriority">'+priorities.map(x=>'<option '+((t?.priority||'Medium')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label>Due Date *</label><input id="pcTaskDueDate" type="date" required value="'+v('dueDate',/^\d{4}-\d{2}-\d{2}$/.test(t?.due||'')?t.due:today())+'"></div>'+
+  '<div class="field"><label>Due Time</label><input id="pcTaskDueTime" type="time" value="'+v('dueTime')+'"></div>'+
+  '<div class="field"><label>Assign To</label><select id="pcTaskAssignee">'+teamNames().map(x=>'<option '+((nameOf(t||{})===x)?'selected':'')+'>'+escv(x)+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label>Task Status</label><select id="pcTaskStatus">'+statuses.map(x=>'<option '+((t?.status||'Pending')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></div>'+
+  '<div class="field"><label>Related Customer</label><select id="pcTaskCustomer">'+taskCustomerOptions(t?.customer)+'</select></div>'+
+  '<div class="field"><label>Related Policy / Claim / Vehicle / Lead</label><select id="pcTaskRelated">'+taskLinks(t||{})+'</select></div>'+
+  '<div class="field" style="grid-column:1/-1"><label>Description / Instructions</label><textarea id="pcTaskDescription" rows="3" placeholder="Write follow-up details, required documents or next action...">'+v('description')+'</textarea></div>'+
+  '<div class="field" style="grid-column:1/-1"><label>Internal Notes</label><textarea id="pcTaskNotes" rows="2" placeholder="Optional internal update...">'+v('notes')+'</textarea></div></div>'+
+  '<p class="sub" style="margin-top:12px">Task history is retained in this browser demo. Assigning a task does not send a notification yet.</p>'+
+  '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="pcSaveTask('+(edit?Number(t.id):'null')+')">'+(edit?'Save Changes':'Create Task')+'</button></div>';
+  openModal();
+ }
+ window.pcSaveTask=function(id){
+  const title=$('pcTaskTitle')?.value.trim(),due=$('pcTaskDueDate')?.value;
+  if(!title){pcToast('Please enter a task title.','error');$('pcTaskTitle')?.focus();return}
+  if(!due){pcToast('Please select a due date.','error');$('pcTaskDueDate')?.focus();return}
+  const prev=id?db.tasks.find(x=>Number(x.id)===Number(id)):null;
+  const obj={...(prev||{}),id:prev?.id||Date.now(),title,category:$('pcTaskCategory').value,priority:$('pcTaskPriority').value,dueDate:due,due:due,dueTime:$('pcTaskDueTime').value,assignedTo:$('pcTaskAssignee').value,status:$('pcTaskStatus').value,customer:$('pcTaskCustomer').value,relatedRef:$('pcTaskRelated').value,description:$('pcTaskDescription').value.trim(),notes:$('pcTaskNotes').value.trim(),createdBy:prev?.createdBy||identity(),createdAt:prev?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+  if(prev)Object.assign(prev,obj);else db.tasks.push(obj);
+  try{persist()}catch(e){if(prev)Object.assign(prev,prev);else db.tasks.pop();pcToast('Browser storage is full. Please reduce stored documents and retry.','error');return}
+  closeModal();render();pcToast(prev?'Task updated successfully.':'Task created successfully.');
+ };
+ window.pcTaskStatus=function(id,status){if(!statuses.includes(status))return;const t=db.tasks.find(x=>Number(x.id)===Number(id));if(!t)return;t.status=status;t.updatedAt=new Date().toISOString();t.statusHistory=t.statusHistory||[];t.statusHistory.push({status,by:identity(),at:t.updatedAt});persist();render();pcToast('Task status updated to '+status+'.')};
+ window.pcFilterTasks=function(){const q=($('pcTaskSearch')?.value||'').toLowerCase(),st=$('pcTaskStatusFilter')?.value||'',pr=$('pcTaskPriorityFilter')?.value||'',as=$('pcTaskAssigneeFilter')?.value||'';const list=visibleTasks().filter(t=>{const blob=[t.title,t.customer,t.description,t.vehicle,t.policy,t.relatedRef,t.category].join(' ').toLowerCase();return (!q||blob.includes(q))&&(!st||(t.status||'Pending')===st)&&(!pr||(t.priority||'Medium')===pr)&&(!as||nameOf(t)===as)});const rows=list.map(t=>'<tr><td><b>'+escv(t.title)+'</b><div class="sub">'+escv(t.category||'General')+(t.customer?' · '+escv(t.customer):'')+'</div></td><td>'+escv(dueDate(t)||t.due||'—')+(isOverdue(t)?' · <span class="pill red">Overdue</span>':'')+'</td><td>'+escv(t.priority||'Medium')+'</td><td>'+escv(nameOf(t))+'</td><td><select onchange="pcTaskStatus('+Number(t.id)+',this.value)">'+statuses.map(x=>'<option '+((t.status||'Pending')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></td><td><button class="btn" onclick="pcEditTask('+Number(t.id)+')">Open / Edit</button></td></tr>').join('');$('pcTaskTableWrap').innerHTML=table(['Task / Related Customer','Due Date','Priority','Assigned To','Status','Action'],list.length?rows.split('</tr>').filter(Boolean).map(x=>x+'</tr>'):[])};
+ window.pcTaskQuickFilter=function(mode){const q=$('pcTaskSearch'),st=$('pcTaskStatusFilter'),pr=$('pcTaskPriorityFilter'),as=$('pcTaskAssigneeFilter');if(q)q.value='';if(st)st.value='';if(pr)pr.value='';if(as)as.value='';const list=visibleTasks().filter(t=>mode==='today'?dueDate(t)===today():mode==='overdue'?isOverdue(t):mode==='open'?!isDone(t):true);const rows=list.map(t=>'<tr><td><b>'+escv(t.title)+'</b><div class="sub">'+escv(t.category||'General')+'</div></td><td>'+escv(dueDate(t)||t.due||'—')+(isOverdue(t)?' · <span class="pill red">Overdue</span>':'')+'</td><td>'+escv(t.priority||'Medium')+'</td><td>'+escv(nameOf(t))+'</td><td><select onchange="pcTaskStatus('+Number(t.id)+',this.value)">'+statuses.map(x=>'<option '+((t.status||'Pending')===x?'selected':'')+'>'+x+'</option>').join('')+'</select></td><td><button class="btn" onclick="pcEditTask('+Number(t.id)+')">Open / Edit</button></td></tr>').join('');$('pcTaskTableWrap').innerHTML=table(['Task / Related Customer','Due Date','Priority','Assigned To','Status','Action'],list.length?rows.split('</tr>').filter(Boolean).map(x=>x+'</tr>'):[])};
+ const baseRender=render;
+ render=function(){baseRender();if(page==='tasks')renderTaskWorkspace()};
+ const oldGo=goAdd;
+ goAdd=function(kind,customerId=null){if(kind==='tasks'){pcAddTask();return}return oldGo(kind,customerId)};
+})();
+</script>
+
+</body></html>
 <style>
 .quote-detail-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:4px 0 16px;border-bottom:1px solid var(--line);margin-bottom:16px}
 .quote-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
