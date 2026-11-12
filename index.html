@@ -1615,7 +1615,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
      }
     }else{
      const token=$('pcBootstrapOtp').value.trim();
-     if(!/^\\d{6}$/.test(token))throw new Error('Exactly 6 digit OTP enter karein.');
+     if(!/^[0-9]{6}$/.test(token))throw new Error('Exactly 6 digit OTP enter karein.');
      const {data,error}=await supabase.auth.verifyOtp({email:ADMIN_EMAIL,token,type:'signup'});
      if(error)throw error;
      const {error:bootErr}=await supabase.rpc('bootstrap_first_admin');
@@ -1736,7 +1736,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
      await sendOtp(loginMode==='setpassword');
     }else if(loginMode==='verifyotp'||loginMode==='setpasswordverify'){
      const email=pendingEmail||resolveEmail(),token=$('pcLoginOtp').value.trim();
-     if(!/^\\d{6}$/.test(token))throw new Error('Exactly 6 digit email OTP enter karein.');
+     if(!/^[0-9]{6}$/.test(token))throw new Error('Exactly 6 digit email OTP enter karein.');
      const {data:otpResult,error:otpError}=await supabase.functions.invoke('otp-verify',{body:{email,token}});
      if(otpError){
       let detail=otpError.message||'OTP verification failed.';
