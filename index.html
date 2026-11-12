@@ -1566,21 +1566,25 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   const $=id=>gate.querySelector('#'+id),identifier=$('pcLoginIdentifier'),linkedWrap=$('pcLinkedEmailWrap'),linkedEmail=$('pcLinkedEmail'),passwordWrap=$('pcPasswordWrap'),otpWrap=$('pcOtpWrap'),newPassWrap=$('pcNewPasswordWrap'),profileWrap=$('pcProfileSetupWrap'),submit=$('pcAuthSubmit'),alertBox=$('pcAuthAlert');
   function isEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);}
   function isPhone(v){return /^[+\d][\d\s()-]{7,18}$/.test(v);}
-  function resolveEmail(){const v=identifier.value.trim();if(isEmail(v))return v.toLowerCase();if(isPhone(v)&&isEmail(linkedEmail.value.trim()))return linkedEmail.value.trim().toLowerCase();throw new Error('Valid email enter karein. Mobile number ke saath us account ka registered email bhi zaroori hai.');}
+  function resolveEmail(){const v=identifier.value.trim();if(isEmail(v))return v.toLowerCase();if(isPhone(v)&&isEmail(linkedEmail.value.trim()))return linkedEmail.value.trim().toLowerCase();throw new Error('Enter a valid email address. If using a mobile number, enter the registered email linked to that account.');}
   function showAlert(msg,type='error'){alertBox.className='pc-auth-alert '+type;alertBox.textContent=msg;}
-  function setMode(mode){loginMode=mode;passwordWrap.classList.toggle('pc-auth-hide',mode!=='password');otpWrap.classList.toggle('pc-auth-hide',!(['verifyotp','setpasswordverify'].includes(mode)));newPassWrap.classList.toggle('pc-auth-hide',mode!=='setnewpassword');profileWrap.classList.toggle('pc-auth-hide',mode!=='setprofile');const idLabel=gate.querySelector('label[for="pcLoginIdentifier"]');if(idLabel)idLabel.textContent=mode==='setpassword'?'Registered Email ID':'Mobile Number or Email ID';identifier.placeholder=mode==='setpassword'?'Enter registered email address':'Enter registered mobile or email';identifier.type=mode==='setpassword'?'email':'text';submit.textContent=mode==='password'?'Login Securely':mode==='otp'?'Send Email OTP':mode==='verifyotp'?'Verify OTP':mode==='setpassword'?'Send OTP to Set Password':mode==='setpasswordverify'?'Verify OTP':mode==='setnewpassword'?'Save New Password':mode==='setprofile'?'Save Profile & Login':'Continue';if(mode==='setpassword')showAlert('Pehle registered email par OTP bhejein. OTP verify hone ke baad password set hoga, phir profile complete hogi.','info');}
+  function setMode(mode){loginMode=mode;passwordWrap.classList.toggle('pc-auth-hide',mode!=='password');otpWrap.classList.toggle('pc-auth-hide',!(['verifyotp','setpasswordverify'].includes(mode)));newPassWrap.classList.toggle('pc-auth-hide',mode!=='setnewpassword');profileWrap.classList.toggle('pc-auth-hide',mode!=='setprofile');const idLabel=gate.querySelector('label[for="pcLoginIdentifier"]');if(idLabel)idLabel.textContent=mode==='setpassword'?'Registered Email ID':'Mobile Number or Email ID';identifier.placeholder=mode==='setpassword'?'Enter registered email address':'Enter registered mobile or email';identifier.type=mode==='setpassword'?'email':'text';submit.textContent=mode==='password'?'Login Securely':mode==='otp'?'Send Email OTP':mode==='verifyotp'?'Verify OTP':mode==='setpassword'?'Send OTP to Set Password':mode==='setpasswordverify'?'Verify OTP':mode==='setnewpassword'?'Save New Password':mode==='setprofile'?'Save Profile & Login':'Continue';if(mode==='setpassword')showAlert('Send an OTP to your registered email first. After verification, set your password and complete your profile.','info');}
 
   identifier.addEventListener('input',()=>{const phone=isPhone(identifier.value.trim())&&!isEmail(identifier.value.trim());linkedWrap.classList.toggle('pc-auth-hide',!phone);});
+  $('pcLoginOtp').addEventListener('input',e=>{
+   e.target.value=String(e.target.value||'').replace(/[^0-9]/g,'').slice(0,6);
+   if(alertBox.textContent)showAlert('Enter the 6-digit email OTP, then select Verify OTP.','info');
+  });
   $('pcUseOtp').addEventListener('click',()=>setMode('otp'));
   $('pcSetPassword').addEventListener('click',()=>{setMode('setpassword');identifier.focus();});
-  $('pcResendOtp').addEventListener('click',async()=>{const b=$('pcResendOtp');b.disabled=true;try{await sendOtp(loginMode==='setpasswordverify');}catch(err){showAlert(err.message||'OTP resend nahi ho paya.','error');}finally{b.disabled=false;}});
-  $('pcChangeEmail').addEventListener('click',()=>{pendingEmail='';$('pcLoginOtp').value='';setMode('setpassword');showAlert('Email ID check ya change karein, phir OTP bhejein.','info');identifier.focus();});
+  $('pcResendOtp').addEventListener('click',async()=>{const b=$('pcResendOtp');b.disabled=true;try{await sendOtp(loginMode==='setpasswordverify');}catch(err){showAlert(err.message||'Unable to resend OTP.','error');}finally{b.disabled=false;}});
+  $('pcChangeEmail').addEventListener('click',()=>{pendingEmail='';$('pcLoginOtp').value='';setMode('setpassword');showAlert('Check or change your email address, then request a new OTP.','info');identifier.focus();});
   const bootstrapStart=$('pcBootstrapStart'),bootstrapPanel=$('pcBootstrapPanel'),bootstrapSubmit=$('pcBootstrapSubmit');
   const ADMIN_EMAIL='vipinmahkhor@gmail.com';
   if(portalKey==='admin'){identifier.value=ADMIN_EMAIL;bootstrapStart.style.display='none';}
   bootstrapStart.addEventListener('click',()=>{
-   if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL){showAlert('First Admin setup sirf authorized Admin email ke liye available hai. Email field mein '+ADMIN_EMAIL+' enter karein.','error');return;}
-   bootstrapPanel.classList.remove('pc-auth-hide');bootstrapStart.classList.add('pc-auth-hide');setMode('password');showAlert('Pehle Admin password banayein. Uske baad email OTP verify hoga.','info');
+   if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL){showAlert('First Admin setup is available only for the authorized Admin email. Enter '+ADMIN_EMAIL+' enter karein.','error');return;}
+   bootstrapPanel.classList.remove('pc-auth-hide');bootstrapStart.classList.add('pc-auth-hide');setMode('password');showAlert('Create the Admin password first. Then verify the email OTP.','info');
   });
   let bootstrapStage='create';
   $('pcResendAdminEmail').addEventListener('click',async()=>{
@@ -1705,10 +1709,10 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
     const {data:profile,error:pErr}=await supabase.from('profiles').select('phone').eq('id',user.id).maybeSingle();
     if(pErr)throw new Error('Mobile verification check failed: '+pErr.message);
     const norm=x=>String(x||'').replace(/\D/g,'').slice(-10);
-    if(!profile||!profile.phone||norm(profile.phone)!==norm(phone))throw new Error('Yeh mobile number is account ke verified profile se match nahi karta.');
+    if(!profile||!profile.phone||norm(profile.phone)!==norm(phone))throw new Error('This mobile number does not match the verified profile for this account.');
    }
    const appRole=portal.appRole,roleEl=document.getElementById('role'),identity=document.getElementById('pcIdentity');
-   if(!roleEl||!identity)throw new Error('Application workspace load nahi hua. Page refresh karein.');
+   if(!roleEl||!identity)throw new Error('The application workspace could not be loaded. Refresh the page.');
    roleEl.value=appRole;roleEl.dispatchEvent(new Event('change',{bubbles:true}));
    const displayName=user.user_metadata?.full_name||user.email||user.phone||'User';
    if(![...identity.options].some(o=>o.value===displayName)){const opt=document.createElement('option');opt.value=displayName;opt.textContent=displayName;identity.appendChild(opt);}
@@ -1722,21 +1726,24 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    const {error}=await supabase.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname+'?portal='+portalKey}});
    if(error)throw error;
    setMode(forPassword?'setpasswordverify':'verifyotp');
-   showAlert('6-digit OTP '+email+' par bhej diya gaya hai. Inbox aur Spam folder check karein.','success');
+   showAlert('6-digit OTP '+email+' par bhej diya gaya hai. Check your inbox and spam folder.','success');
   }
   submit.addEventListener('click',async()=>{
    submit.disabled=true;const old=submit.textContent;showAlert('Please wait...','info');
    try{
     if(loginMode==='password'){
      const email=resolveEmail(),pass=$('pcLoginPassword').value;
-     if(!pass)throw new Error('Password enter karein.');
+     if(!pass)throw new Error('Enter your password.');
      const {data,error}=await supabase.auth.signInWithPassword({email,password:pass});if(error)throw error;
      await verifyRoleAndEnter(data.user);
     }else if(loginMode==='otp'||loginMode==='setpassword'){
      await sendOtp(loginMode==='setpassword');
     }else if(loginMode==='verifyotp'||loginMode==='setpasswordverify'){
-     const email=pendingEmail||resolveEmail(),token=$('pcLoginOtp').value.trim();
-     if(!/^[0-9]{6}$/.test(token))throw new Error('Exactly 6 digit email OTP enter karein.');
+     const email=pendingEmail||resolveEmail();
+     const otpInput=$('pcLoginOtp');
+     const token=String(otpInput.value||'').replace(/[^0-9]/g,'').slice(0,6);
+     otpInput.value=token;
+     if(token.length!==6)throw new Error('Enter all 6 digits of the email OTP before selecting Verify OTP.');
      const {data:otpResult,error:otpError}=await supabase.functions.invoke('otp-verify',{body:{email,token}});
      if(otpError){
       let detail=otpError.message||'OTP verification failed.';
@@ -1744,32 +1751,32 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
       throw new Error(detail);
      }
      const authData=otpResult?.data;
-     if(!authData?.access_token||!authData?.refresh_token)throw new Error('OTP verify response incomplete. Dobara try karein.');
+     if(!authData?.access_token||!authData?.refresh_token)throw new Error('OTP verification response is incomplete. Please try again.');
      const {data:sessionData,error:sessionError}=await supabase.auth.setSession({access_token:authData.access_token,refresh_token:authData.refresh_token});
      if(sessionError)throw sessionError;
      const verifiedUser=sessionData.user||authData.user;
-     if(!verifiedUser)throw new Error('Verified user details nahi mile. Dobara login karein.');
+     if(!verifiedUser)throw new Error('Verified user details were not returned. Please sign in again.');
      if(loginMode==='setpasswordverify'){
       authUser=verifiedUser;setMode('setnewpassword');
       const {data:profile}=await supabase.from('profiles').select('full_name,phone').eq('id',verifiedUser.id).maybeSingle();
       $('pcSetupFullName').value=profile?.full_name||verifiedUser.user_metadata?.full_name||'';
       $('pcSetupPhone').value=profile?.phone||'';
-      showAlert('Email OTP verified. Ab password aur profile complete karein.','success');return;
+      showAlert('Email OTP verified. Now set your password and complete your profile.','success');return;
      }
      await verifyRoleAndEnter(verifiedUser);
     }else if(loginMode==='setnewpassword'){
      const p=$('pcNewPassword').value,q=$('pcConfirmPassword').value;
-     if(p.length<8)throw new Error('Password kam se kam 8 characters ka hona chahiye.');if(p!==q)throw new Error('Password aur Confirm Password match nahi kar rahe.');
+     if(p.length<8)throw new Error('Password must contain at least 8 characters.');if(p!==q)throw new Error('Password and confirmation do not match.');
      const {error:updateError}=await supabase.auth.updateUser({password:p});if(updateError)throw updateError;
      const {data:profile}=await supabase.from('profiles').select('full_name,phone').eq('id',authUser.id).maybeSingle();
      $('pcSetupFullName').value=profile?.full_name||authUser.user_metadata?.full_name||'';$('pcSetupPhone').value=profile?.phone||'';
-     setMode('setprofile');showAlert('Password successfully set ho gaya. Ab apni profile complete karein.','success');
+     setMode('setprofile');showAlert('Password successfully set. Now complete your profile.','success');
     }else if(loginMode==='setprofile'){
      const n=$('pcSetupFullName').value.trim(),phone=$('pcSetupPhone').value.trim();
-     if(n.length<2)throw new Error('Full name enter karein.');if(phone&&!/^[+0-9()\\s-]{8,16}$/.test(phone))throw new Error('Valid mobile number enter karein.');
+     if(n.length<2)throw new Error('Enter your full name.');if(phone&&!/^[+0-9()\\s-]{8,16}$/.test(phone))throw new Error('Enter a valid mobile number.');
      const {error:updateError}=await supabase.auth.updateUser({data:{full_name:n}});if(updateError)throw updateError;
      const {error:profileError}=await supabase.from('profiles').update({full_name:n,phone:phone||null,updated_at:new Date().toISOString()}).eq('id',authUser.id);if(profileError)throw profileError;
-     showAlert('Profile successfully save ho gayi. Portal access verify ho raha hai...','success');await verifyRoleAndEnter(authUser);
+     showAlert('Profile saved successfully. Verifying portal access...','success');await verifyRoleAndEnter(authUser);
 
     }
    }catch(err){showAlert(err.message||'Login failed. Please try again.','error');}
