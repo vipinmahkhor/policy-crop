@@ -1679,13 +1679,20 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    @media(max-width:560px){.pc-sa-form{grid-template-columns:1fr}.pc-sa-list-head{align-items:flex-start;flex-direction:column}}
   `;if(!document.getElementById('pcSaStyle')){saStyle.id='pcSaStyle';document.head.appendChild(saStyle);}
   async function verifyRoleAndEnter(user){
-   const {data:memberRows,error}=await supabase.from('org_members').select('role,organization_id').eq('user_id',user.id).limit(10);
+   const {data:memberRows,error}=await supabase.from('org_members').select('role,organization_id').eq('user_id',user.id).limit(50);
    if(error)throw new Error('Role permission verify nahi ho paya: '+error.message);
-   const member=(memberRows||[]).find(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase()));
    const {data:platformGrant,error:platformErr}=await supabase.from('platform_admins').select('user_id,access_level').eq('user_id',user.id).maybeSingle();
    if(platformErr)throw new Error('Platform permission check failed: '+platformErr.message);
    window.pcIsPlatformAdmin=platformGrant?.access_level==='super_admin';
-   if(!member&&!window.pcIsPlatformAdmin)throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+   const memberOrgIds=[...new Set((memberRows||[]).map(m=>m.organization_id))];
+   const {data:activeOrgs,error:orgErr}=memberOrgIds.length?await supabase.from('organizations').select('id,subscription_status,valid_until').in('id',memberOrgIds):{data:[],error:null};
+   if(orgErr)throw new Error('Subscription status check failed: '+orgErr.message);
+   const activeOrgIds=new Set((activeOrgs||[]).filter(o=>['active','trial'].includes(o.subscription_status)&&(!o.valid_until||new Date(o.valid_until)>new Date())).map(o=>o.id));
+   const member=(memberRows||[]).find(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase())&&activeOrgIds.has(m.organization_id));
+   if(!member&&!window.pcIsPlatformAdmin){
+    if((memberRows||[]).some(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase())))throw new Error('Aapke CRM subscription ki validity khatam ho gayi hai ya account suspend hai. Apne PolicyCrop provider se renewal karwayein.');
+    throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+   }
    if(portalKey==='admin'&&window.pcIsPlatformAdmin){
     const nav=document.getElementById('nav');
     if(nav&&!document.getElementById('pcSuperAdminNav'))nav.insertAdjacentHTML('beforeend','<div class="group">PLATFORM</div><button data-page="superadmin" id="pcSuperAdminNav"><span class="ico">♛</span>Super Admin</button>');
