@@ -1721,6 +1721,11 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    const displayName=user.user_metadata?.full_name||user.email||user.phone||'User';
    if(![...identity.options].some(o=>o.value===displayName)){const opt=document.createElement('option');opt.value=displayName;opt.textContent=displayName;identity.appendChild(opt);}
    identity.value=displayName;identity.dispatchEvent(new Event('change',{bubbles:true}));
+   const username=document.querySelector('.topright .username');
+   const shownRole=window.pcIsPlatformAdmin?'Super Admin':(portalKey==='admin'?'Admin':portal.label);
+   if(username){username.innerHTML=esc(displayName)+'<br><small style="color:#8290a4">'+esc(shownRole)+'</small>';username.style.display='block';}
+   if(roleEl){roleEl.title='Signed in as '+shownRole;roleEl.setAttribute('aria-label','Current role: '+shownRole);}
+   if(identity){identity.title='Signed in user: '+displayName;identity.setAttribute('aria-label','Signed in user: '+displayName);}
    try{sessionStorage.setItem('pc_locked_portal',portalKey);}catch(e){}
    gate.style.display='none';
    lockDashboardRole();
@@ -1791,7 +1796,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
  }
  function lockDashboardRole(){
   const role=document.getElementById('role'),identity=document.getElementById('pcIdentity');
-  [role,identity].forEach(el=>{if(el){el.disabled=true;el.classList.add('pc-auth-hide');el.setAttribute('aria-hidden','true');}});
+  [role,identity].forEach(el=>{if(el){el.disabled=true;el.classList.remove('pc-auth-hide');el.removeAttribute('aria-hidden');el.style.display='inline-flex';el.style.opacity='1';el.style.cursor='default';}});
   const top=document.querySelector('.topright');
   if(top&&!document.getElementById('pcSecureLogout')){
    const b=document.createElement('button');b.id='pcSecureLogout';b.type='button';b.className='btn';b.textContent='Logout';
