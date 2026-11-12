@@ -1568,7 +1568,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   function isPhone(v){return /^[+\d][\d\s()-]{7,18}$/.test(v);}
   function resolveEmail(){const v=identifier.value.trim();if(isEmail(v))return v.toLowerCase();if(isPhone(v)&&isEmail(linkedEmail.value.trim()))return linkedEmail.value.trim().toLowerCase();throw new Error('Valid email enter karein. Mobile number ke saath us account ka registered email bhi zaroori hai.');}
   function showAlert(msg,type='error'){alertBox.className='pc-auth-alert '+type;alertBox.textContent=msg;}
-  function setMode(mode){loginMode=mode;passwordWrap.classList.toggle('pc-auth-hide',mode!=='password');otpWrap.classList.toggle('pc-auth-hide',!(['verifyotp','setpasswordverify'].includes(mode)));newPassWrap.classList.toggle('pc-auth-hide',mode!=='completeprofile');profileWrap.classList.toggle('pc-auth-hide',mode!=='completeprofile');const idLabel=gate.querySelector('label[for="pcLoginIdentifier"]');if(idLabel)idLabel.textContent=mode==='setpassword'?'Registered Email ID':'Mobile Number or Email ID';identifier.placeholder=mode==='setpassword'?'Enter registered email address':'Enter registered mobile or email';identifier.type=mode==='setpassword'?'email':'text';submit.textContent=mode==='password'?'Login Securely':mode==='otp'?'Send Email OTP':mode==='verifyotp'?'Verify OTP':mode==='setpassword'?'Send OTP to Set Password':mode==='setpasswordverify'?'Verify OTP':mode==='completeprofile'?'Save Password & Profile':'Continue';if(mode==='setpassword')showAlert('Pehle registered email par OTP bhejein. OTP verify hone ke baad password aur profile set hoga.','info');}
+  function setMode(mode){loginMode=mode;passwordWrap.classList.toggle('pc-auth-hide',mode!=='password');otpWrap.classList.toggle('pc-auth-hide',!(['verifyotp','setpasswordverify'].includes(mode)));newPassWrap.classList.toggle('pc-auth-hide',mode!=='setnewpassword');profileWrap.classList.toggle('pc-auth-hide',mode!=='setprofile');const idLabel=gate.querySelector('label[for="pcLoginIdentifier"]');if(idLabel)idLabel.textContent=mode==='setpassword'?'Registered Email ID':'Mobile Number or Email ID';identifier.placeholder=mode==='setpassword'?'Enter registered email address':'Enter registered mobile or email';identifier.type=mode==='setpassword'?'email':'text';submit.textContent=mode==='password'?'Login Securely':mode==='otp'?'Send Email OTP':mode==='verifyotp'?'Verify OTP':mode==='setpassword'?'Send OTP to Set Password':mode==='setpasswordverify'?'Verify OTP':mode==='setnewpassword'?'Save New Password':mode==='setprofile'?'Save Profile & Login':'Continue';if(mode==='setpassword')showAlert('Pehle registered email par OTP bhejein. OTP verify hone ke baad password set hoga, phir profile complete hogi.','info');}
 
   identifier.addEventListener('input',()=>{const phone=isPhone(identifier.value.trim())&&!isEmail(identifier.value.trim());linkedWrap.classList.toggle('pc-auth-hide',!phone);});
   $('pcUseOtp').addEventListener('click',()=>setMode('otp'));
@@ -1739,26 +1739,30 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
      if(!/^\\d{6}$/.test(token))throw new Error('Exactly 6 digit email OTP enter karein.');
      const {data,error}=await supabase.auth.verifyOtp({email,token,type:'email'});if(error)throw error;
      if(loginMode==='setpasswordverify'){
-      authUser=data.user;setMode('completeprofile');
+      authUser=data.user;setMode('setnewpassword');
       const {data:profile}=await supabase.from('profiles').select('full_name,phone').eq('id',data.user.id).maybeSingle();
       $('pcSetupFullName').value=profile?.full_name||data.user.user_metadata?.full_name||'';
       $('pcSetupPhone').value=profile?.phone||'';
       showAlert('Email OTP verified. Ab password aur profile complete karein.','success');return;
      }
      await verifyRoleAndEnter(data.user);
-    }else if(loginMode==='completeprofile'){
-     const p=$('pcNewPassword').value,q=$('pcConfirmPassword').value,n=$('pcSetupFullName').value.trim(),phone=$('pcSetupPhone').value.trim();
-     if(p.length<8)throw new Error('Password kam se kam 8 characters ka hona chahiye.');
-     if(p!==q)throw new Error('Password aur Confirm Password match nahi kar rahe.');
-     if(n.length<2)throw new Error('Full name enter karein.');
-     if(phone&&!/^[+0-9()\\s-]{8,16}$/.test(phone))throw new Error('Valid mobile number enter karein.');
-     const {error:updateError}=await supabase.auth.updateUser({password:p,data:{full_name:n}});if(updateError)throw updateError;
+    }else if(loginMode==='setnewpassword'){
+     const p=$('pcNewPassword').value,q=$('pcConfirmPassword').value;
+     if(p.length<8)throw new Error('Password kam se kam 8 characters ka hona chahiye.');if(p!==q)throw new Error('Password aur Confirm Password match nahi kar rahe.');
+     const {error:updateError}=await supabase.auth.updateUser({password:p});if(updateError)throw updateError;
+     const {data:profile}=await supabase.from('profiles').select('full_name,phone').eq('id',authUser.id).maybeSingle();
+     $('pcSetupFullName').value=profile?.full_name||authUser.user_metadata?.full_name||'';$('pcSetupPhone').value=profile?.phone||'';
+     setMode('setprofile');showAlert('Password successfully set ho gaya. Ab apni profile complete karein.','success');
+    }else if(loginMode==='setprofile'){
+     const n=$('pcSetupFullName').value.trim(),phone=$('pcSetupPhone').value.trim();
+     if(n.length<2)throw new Error('Full name enter karein.');if(phone&&!/^[+0-9()\\s-]{8,16}$/.test(phone))throw new Error('Valid mobile number enter karein.');
+     const {error:updateError}=await supabase.auth.updateUser({data:{full_name:n}});if(updateError)throw updateError;
      const {error:profileError}=await supabase.from('profiles').update({full_name:n,phone:phone||null,updated_at:new Date().toISOString()}).eq('id',authUser.id);if(profileError)throw profileError;
-     showAlert('Password aur profile save ho gaya. Portal access verify ho raha hai...','success');await verifyRoleAndEnter(authUser);
+     showAlert('Profile successfully save ho gayi. Portal access verify ho raha hai...','success');await verifyRoleAndEnter(authUser);
 
     }
    }catch(err){showAlert(err.message||'Login failed. Please try again.','error');}
-   finally{submit.disabled=false;submit.textContent=loginMode==='password'?'Login Securely':loginMode==='otp'?'Send Email OTP':loginMode==='verifyotp'?'Verify OTP':loginMode==='setpassword'?'Send OTP to Set Password':loginMode==='setpasswordverify'?'Verify OTP':loginMode==='completeprofile'?'Save Password & Profile':old;}
+   finally{submit.disabled=false;submit.textContent=loginMode==='password'?'Login Securely':loginMode==='otp'?'Send Email OTP':loginMode==='verifyotp'?'Verify OTP':loginMode==='setpassword'?'Send OTP to Set Password':loginMode==='setpasswordverify'?'Verify OTP':loginMode==='setnewpassword'?'Save New Password':loginMode==='setprofile'?'Save Profile & Login':old;}
   });
   setMode('password');
  }
