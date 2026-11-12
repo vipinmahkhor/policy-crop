@@ -261,7 +261,7 @@ function editVehicle(id){
 }
 function saveVehicleEdit(id){const v=db.vehicles.find(x=>Number(x.id)===Number(id));if(!v)return;Object.assign(v,{reg:$('ev_reg').value,type:$('ev_type').value,make:$('ev_make').value,model:$('ev_model').value,insurer:$('ev_insurer').value,policy:$('ev_policy').value,expiry:$('ev_expiry').value,rmName:$('ev_rm').value,agentName:$('ev_agent').value});const p=db.policies.find(x=>String(x.vehicle||'').toLowerCase()===String(v.reg||'').toLowerCase()||String(x.number||'').toLowerCase()===String(v.policy||'').toLowerCase());if(p)Object.assign(p,{vehicle:v.reg,number:v.policy,insurer:v.insurer,expiry:v.expiry,rmName:v.rmName,agentName:v.agentName});persist();closeModal();render();pcToast('Vehicle details and policy assignment updated.')}
 
-function render(){const topContact=$('topSupportContact');if(topContact)topContact.innerHTML=supportContactHeader();const brokerNav=$('pcBrokersNav');if(brokerNav)brokerNav.style.display=['Owner','Employee'].includes($('role').value)?'flex':'none';document.querySelectorAll('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));let v=$('view');const c=db.customers.length,p=db.policies.length;if(page==='customerProfile'){renderCustomerProfile();return;}
+function render(){const topContact=$('topSupportContact');if(topContact)topContact.innerHTML=supportContactHeader();const brokerNav=$('pcBrokersNav');if(brokerNav)brokerNav.style.display=['Owner','Employee'].includes($('role').value)?'flex':'none';document.querySelectorAll('#nav button[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));let v=$('view');const c=db.customers.length,p=db.policies.length;if(page==='customerProfile'){renderCustomerProfile();return;}if(page==='superadmin'){if(window.pcRenderSuperAdminPanel)window.pcRenderSuperAdminPanel();else v.innerHTML=heading('Super Admin','Platform control is loading...');return;}
 if(page==='dashboard'){if($('role').value==='Agent'){v.innerHTML=renderAgentDashboard($('pcIdentity')?.value||'');}else{v.innerHTML=heading('Namaste, Vipin','Your agency at a glance.',action('+ Add Lead',"navigate('leads')")+' '+action('New Policy',"navigate('policies')"))+ '<div class="dashboard-top-grid">'+dashboardBanner()+'</div><div class="cards">'+stat('Active policies',p)+stat('Renewals in 7 days','4','Needs follow-up')+stat('Renewals in 30 days','11','Upcoming')+stat('Premium collected','₹1,77,996')+stat('Pending insurer settlement','₹1,40,459')+stat('Commission earned','₹38,854')+'</div><div class="cols"><div class="panel"><h3>Leads pipeline</h3>'+['New','Contacted','Quoted','Negotiation','Won','Lost'].map((s,i)=>'<div class="barrow"><span>'+s+'</span><div class="bar"><i style="width:'+([100,80,65,45,30,15][i])+'%"></i></div><b>'+([3,3,3,2,2,1][i])+'</b></div>').join('')+'</div><div class="panel"><h3>Upcoming expiries</h3>'+db.policies.map(x=>'<div class="expiry"><span>'+esc(x.number)+' · '+esc(x.customer)+'</span><b>'+esc(x.expiry)+'</b></div>').join('')+'</div></div><div class="panel" style="margin-top:16px"><h3>Recent policies</h3>'+table(['Policy No.','Customer','Vehicle','Insurer','Premium','Status'],db.policies.map(x=>'<tr><td>'+esc(x.number)+'</td><td>'+esc(x.customer)+'</td><td>'+esc(x.vehicle)+'</td><td>'+esc(x.insurer)+'</td><td>'+money(x.premium)+'</td><td><span class="pill">'+esc(x.status)+'</span></td></tr>'))+'</div>'}}
 else if(page==='customers'){v.innerHTML=heading('Customers','Manage your customer database.',action('+ Add Customer',"goAdd('customers')"))+table(['Customer Name','Mobile','Email','City / Address','Assigned To','Vehicles','Action'],db.customers.map(x=>'<tr><td><button class="link" onclick="customerDetail('+x.id+')">'+esc(x.name)+'</button></td><td>'+esc(x.mobile)+'</td><td>'+esc(x.email)+'</td><td>'+esc(x.city)+'</td><td>'+esc(x.assignedTo||'Not assigned')+'</td><td>'+x.vehicles.length+'</td><td><button class="btn" onclick="customerDetail('+x.id+')">View details</button> '+(['Owner','Employee'].includes($('role').value)?'<button class="btn" onclick="editCustomer('+x.id+')">Modify</button>':'')+'</td></tr>'))}
 else if(page==='vehicles'){v.innerHTML=heading('Vehicles','All customer vehicles and registration details.',action('+ Add Vehicle',"goAdd('vehicles')"))+table(['Registration','Customer','Type','Make / Model','Insurer','Policy','RM','Agent','Expiry','Action'],db.vehicles.map(x=>'<tr><td>'+esc(x.reg)+'</td><td>'+esc(db.customers.find(c=>c.id===x.customer)?.name||'')+'</td><td>'+esc(x.type)+'</td><td>'+esc(x.make)+' '+esc(x.model)+'</td><td>'+esc(x.insurer)+'</td><td>'+esc(x.policy)+'</td><td>'+esc(x.rmName||'Not assigned')+'</td><td>'+esc(x.agentName||'Not assigned')+'</td><td>'+esc(x.expiry)+'</td><td>'+(['Owner','Employee'].includes($('role').value)?'<button class="btn" onclick="editVehicle('+x.id+')">Modify</button>':'—')+'</td></tr>'))}
@@ -1623,11 +1623,73 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    finally{bootstrapSubmit.disabled=false;}
   });
 
+
+  window.pcRenderSuperAdminPanel=async function(){
+   const view=document.getElementById('view');if(!view)return;
+   view.innerHTML='<div class="heading"><div><h1>Super Admin Console</h1><div class="sub">Manage PolicyCrop customers, subscriptions and account validity</div></div><span class="pc-sa-pill">MASTER CONTROL</span></div><div class="cards"><div class="stat"><div class="label">Customer Workspaces</div><strong id="pcSaCount">—</strong><small>All registered agencies</small></div><div class="stat"><div class="label">Active Subscriptions</div><strong id="pcSaActive">—</strong><small>Currently enabled</small></div><div class="stat"><div class="label">Expired / Suspended</div><strong id="pcSaBlocked">—</strong><small>Access restricted</small></div></div><div class="panel pc-sa-panel"><h3>Create Customer Admin</h3><p class="sub">Create a separate workspace and invite its Admin by email. Each customer can access only their own agency data.</p><div class="pc-sa-form"><label>Agency / Business Name<input id="pcSaOrgName" placeholder="e.g. Sharma Insurance Services"></label><label>Admin Name<input id="pcSaAdminName" placeholder="Customer admin full name"></label><label>Admin Email<input id="pcSaEmail" type="email" placeholder="admin@example.com"></label><label>Subscription Plan<select id="pcSaPlan"><option value="trial">Trial</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="professional">Professional</option><option value="enterprise">Enterprise</option><option value="custom">Custom</option></select></label><label>Validity / Expiry Date<input id="pcSaValid" type="date"></label><label>Maximum Users<input id="pcSaMaxUsers" type="number" min="1" max="5000" value="10"></label><label>Account Status<select id="pcSaStatus"><option value="trial">Trial</option><option value="active">Active</option><option value="suspended">Suspended</option></select></label><div class="pc-sa-submit"><button class="btn primary" id="pcSaCreateBtn" type="button">Create Workspace & Send Invite</button></div></div><div id="pcSaCreateMsg" class="pc-sa-msg"></div></div><div class="panel pc-sa-panel"><div class="pc-sa-list-head"><div><h3>Customer Accounts & Validity</h3><p class="sub">Update plan, expiry date and account status anytime.</p></div><button class="btn" id="pcSaRefresh" type="button">↻ Refresh</button></div><div id="pcSaTenantList">Loading customer accounts…</div></div>';
+   const today=new Date();today.setDate(today.getDate()+14);const defaultDate=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');const dateEl=document.getElementById('pcSaValid');if(dateEl)dateEl.value=defaultDate;
+   document.getElementById('pcSaCreateBtn')?.addEventListener('click',window.pcSaCreateTenant);
+   document.getElementById('pcSaRefresh')?.addEventListener('click',window.pcSaLoadTenants);
+   await window.pcSaLoadTenants();
+  };
+  window.pcSaCall=async function(payload){
+   const {data,error}=await supabase.functions.invoke('platform-control',{body:payload});
+   if(error)throw new Error(error.message||'Platform control request failed.');
+   if(data?.error)throw new Error(data.error);
+   return data;
+  };
+  window.pcSaLoadTenants=async function(){
+   const target=document.getElementById('pcSaTenantList');if(!target)return;
+   target.textContent='Loading customer accounts…';
+   try{
+    const data=await window.pcSaCall({action:'list_tenants'}),rows=data.tenants||[];
+    const active=rows.filter(x=>['active','trial'].includes(x.subscription_status)&&(!x.valid_until||new Date(x.valid_until)>new Date())).length;
+    const blocked=rows.length-active;
+    document.getElementById('pcSaCount').textContent=rows.length;
+    document.getElementById('pcSaActive').textContent=active;
+    document.getElementById('pcSaBlocked').textContent=blocked;
+    if(!rows.length){target.innerHTML='<div class="empty">No customer workspaces yet. Create the first customer Admin above.</div>';return;}
+    const options=(value,items)=>items.map(x=>'<option value="'+x+'" '+(x===value?'selected':'')+'>'+x.charAt(0).toUpperCase()+x.slice(1)+'</option>').join('');
+    target.innerHTML='<div class="tablewrap"><table class="table pc-sa-table"><thead><tr><th>Agency / Admin Email</th><th>Plan</th><th>Validity</th><th>Status</th><th>Users</th><th>Save</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><b>'+esc(x.name)+'</b><small class="pc-sa-email">'+esc(x.admin_email||'')+'</small></td><td><select id="pcSaPlan_'+x.id+'">'+options(x.subscription_plan,['trial','starter','growth','professional','enterprise','custom'])+'</select></td><td><input type="date" id="pcSaDate_'+x.id+'" value="'+(x.valid_until?new Date(x.valid_until).toISOString().slice(0,10):'')+'" title="Leave blank for unlimited validity"></td><td><select id="pcSaStatus_'+x.id+'">'+options(x.subscription_status,['trial','active','suspended','expired'])+'</select></td><td><input type="number" min="1" max="5000" id="pcSaUsers_'+x.id+'" value="'+Number(x.max_users||10)+'"></td><td><button class="btn primary" type="button" onclick="pcSaUpdateTenant(\''+x.id+'\')">Save</button></td></tr>').join('')+'</tbody></table></div><p class="pc-sa-hint">Blank expiry date means unlimited validity. Expired or suspended workspaces lose access to tenant data.</p>';
+   }catch(err){target.innerHTML='<div class="pc-sa-error">'+esc(err.message)+'</div>';}
+  };
+  window.pcSaCreateTenant=async function(){
+   const btn=document.getElementById('pcSaCreateBtn'),msg=document.getElementById('pcSaCreateMsg');
+   const val=id=>document.getElementById(id)?.value?.trim()||'';
+   const payload={action:'create_tenant',organization_name:val('pcSaOrgName'),admin_name:val('pcSaAdminName'),admin_email:val('pcSaEmail'),subscription_plan:val('pcSaPlan'),subscription_status:val('pcSaStatus'),valid_until:val('pcSaValid')||null,max_users:Number(val('pcSaMaxUsers')||10)};
+   if(!payload.organization_name||!payload.admin_email){msg.textContent='Agency name and Admin email are required.';msg.className='pc-sa-msg error';return;}
+   btn.disabled=true;btn.textContent='Creating workspace…';msg.textContent='';
+   try{const data=await window.pcSaCall(payload);msg.textContent=data.message+(data.invite_sent?' Check the Admin email inbox for the invitation.':'');msg.className='pc-sa-msg success';document.getElementById('pcSaOrgName').value='';document.getElementById('pcSaAdminName').value='';document.getElementById('pcSaEmail').value='';await window.pcSaLoadTenants();}
+   catch(err){msg.textContent=err.message;msg.className='pc-sa-msg error';}
+   finally{btn.disabled=false;btn.textContent='Create Workspace & Send Invite';}
+  };
+  window.pcSaUpdateTenant=async function(id){
+   const val=id=>document.getElementById(id)?.value;
+   try{await window.pcSaCall({action:'update_tenant',organization_id:id,subscription_plan:val('pcSaPlan_'+id),valid_until:val('pcSaDate_'+id)||null,subscription_status:val('pcSaStatus_'+id),max_users:Number(val('pcSaUsers_'+id)||10)});pcToast('Customer subscription and validity updated.');await window.pcSaLoadTenants();}
+   catch(err){pcToast(err.message,'error');}
+  };
+  const saStyle=document.createElement('style');saStyle.textContent=`
+   .pc-sa-pill{align-self:flex-start;background:#e7f3ff;color:#1456a0;padding:8px 13px;border-radius:30px;font-size:11px;font-weight:800;letter-spacing:1px}
+   .pc-sa-panel{margin:16px 0;padding:22px}.pc-sa-panel h3{margin:0 0 8px;color:#122b4c}.pc-sa-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+   .pc-sa-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:700;color:#526783}
+   .pc-sa-form input,.pc-sa-form select,.pc-sa-table input,.pc-sa-table select{width:100%;min-width:95px;padding:10px;border:1px solid #d6e1ef;border-radius:9px;background:#f9fbff;color:#183252;font:inherit}
+   .pc-sa-submit{display:flex;align-items:end}.pc-sa-msg{margin-top:12px;font-size:13px}.pc-sa-msg.success{color:#087f5b}.pc-sa-msg.error,.pc-sa-error{color:#b42318;background:#fff1f0;padding:12px;border-radius:10px}
+   .pc-sa-list-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.pc-sa-email{display:block;color:#72839a;font-size:11px;margin-top:4px}.pc-sa-hint{font-size:12px;color:#718096;margin-top:12px}
+   @media(max-width:900px){.pc-sa-form{grid-template-columns:repeat(2,minmax(0,1fr))}.pc-sa-table{min-width:850px}}
+   @media(max-width:560px){.pc-sa-form{grid-template-columns:1fr}.pc-sa-list-head{align-items:flex-start;flex-direction:column}}
+  `;if(!document.getElementById('pcSaStyle')){saStyle.id='pcSaStyle';document.head.appendChild(saStyle);}
   async function verifyRoleAndEnter(user){
    const {data:memberRows,error}=await supabase.from('org_members').select('role,organization_id').eq('user_id',user.id).limit(10);
    if(error)throw new Error('Role permission verify nahi ho paya: '+error.message);
    const member=(memberRows||[]).find(m=>portal.dbRoles.includes(String(m.role||'').toLowerCase()));
-   if(!member)throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+   const {data:platformGrant,error:platformErr}=await supabase.from('platform_admins').select('user_id,access_level').eq('user_id',user.id).maybeSingle();
+   if(platformErr)throw new Error('Platform permission check failed: '+platformErr.message);
+   window.pcIsPlatformAdmin=platformGrant?.access_level==='super_admin';
+   if(!member&&!window.pcIsPlatformAdmin)throw new Error('Is account ko '+label+' portal ki permission nahi mili. Admin se role assignment karwayein.');
+   if(portalKey==='admin'&&window.pcIsPlatformAdmin){
+    const nav=document.getElementById('nav');
+    if(nav&&!document.getElementById('pcSuperAdminNav'))nav.insertAdjacentHTML('beforeend','<div class="group">PLATFORM</div><button data-page="superadmin" id="pcSuperAdminNav"><span class="ico">♛</span>Super Admin</button>');
+   }
    const phone=identifier.value.trim();
    if(isPhone(phone)){
     const {data:profile,error:pErr}=await supabase.from('profiles').select('phone').eq('id',user.id).maybeSingle();
