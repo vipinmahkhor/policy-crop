@@ -1637,7 +1637,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   async function sendOtp(forPassword){
    const email=resolveEmail();pendingEmail=email;pendingPhone=isPhone(identifier.value.trim())?identifier.value.trim():'';
    const {error}=await supabase.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
-   if(error)throw error;
+   if(error){if(/signups not allowed|signup.*disabled/i.test(error.message||''))throw new Error('Yeh email abhi Supabase Auth mein registered nahi hai aur new signups disabled hain. First-time Admin Account Setup use karein; agar wahan bhi yahi error aaye, Supabase Dashboard > Authentication > Settings mein temporarily Allow new users to sign up ON karein, phir Admin account verify hone ke baad OFF kar dein.');throw error;}
    setMode(forPassword?'setpasswordverify':'verifyotp');
    showAlert('OTP '+email+' par bhej diya gaya hai. Inbox aur Spam folder check karein.','success');
   }
