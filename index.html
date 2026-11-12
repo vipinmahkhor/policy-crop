@@ -1374,3 +1374,67 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 .quote-chat-msg small{font-size:10px;color:var(--muted)}
 #quoteStatusPick{width:100%;border:1px solid #dce3ed;border-radius:8px;padding:10px;background:#fff}
 .policy-compact-note{font-size:11px;color:#64748b}.fieldgrid .field{min-width:0}.field input,.field select{box-sizing:border-box;max-width:100%}@media(max-width:560px){#modalBody .fieldgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#modalBody .field label{font-size:11px}#modalBody .field input,#modalBody .field select{min-height:39px;padding:7px;font-size:12px}}</style>
+<style id="pc-semantic-color-system">
+/* PolicyCrop: shared situation-based color system across every module */
+:root{
+ --pc-success:#15803d;--pc-success-bg:#eaf7ee;--pc-success-border:#b9e4c5;
+ --pc-danger:#b42318;--pc-danger-bg:#fff0ef;--pc-danger-border:#f5c2bf;
+ --pc-warning:#a15c00;--pc-warning-bg:#fff5df;--pc-warning-border:#f2d79a;
+ --pc-info:#175cd3;--pc-info-bg:#edf4ff;--pc-info-border:#c7dcff;
+ --pc-review:#6941c6;--pc-review-bg:#f3efff;--pc-review-border:#d9ccff;
+ --pc-neutral:#526174;--pc-neutral-bg:#f1f4f8;--pc-neutral-border:#d9e0e9;
+}
+.pill,.pc-semantic{display:inline-flex;align-items:center;gap:5px;width:max-content;max-width:100%;padding:5px 9px;border:1px solid transparent;border-radius:999px;font-size:11px;font-weight:700;line-height:1.25;white-space:normal;vertical-align:middle}
+.pill{background:var(--pc-info-bg);color:var(--pc-info);border-color:var(--pc-info-border)}
+.pill.red,.pc-semantic.is-danger{background:var(--pc-danger-bg);color:var(--pc-danger);border-color:var(--pc-danger-border)}
+.pill.orange,.pc-semantic.is-warning{background:var(--pc-warning-bg);color:var(--pc-warning);border-color:var(--pc-warning-border)}
+.pc-semantic.is-success{background:var(--pc-success-bg);color:var(--pc-success);border-color:var(--pc-success-border)}
+.pc-semantic.is-info{background:var(--pc-info-bg);color:var(--pc-info);border-color:var(--pc-info-border)}
+.pc-semantic.is-review{background:var(--pc-review-bg);color:var(--pc-review);border-color:var(--pc-review-border)}
+.pc-semantic.is-neutral{background:var(--pc-neutral-bg);color:var(--pc-neutral);border-color:var(--pc-neutral-border)}
+/* Situation-colored KPI accents, alerts and interactive states */
+.stat.pc-kpi-success{border-top:3px solid var(--pc-success)}.stat.pc-kpi-danger{border-top:3px solid var(--pc-danger)}
+.stat.pc-kpi-warning{border-top:3px solid #d99016}.stat.pc-kpi-info{border-top:3px solid var(--pc-info)}
+.notice{background:var(--pc-warning-bg);border-color:var(--pc-warning-border);color:#754600}
+.btn.danger,.btn.pc-semantic.is-danger{background:var(--pc-danger-bg);color:var(--pc-danger);border-color:var(--pc-danger-border)}
+.btn:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #1769e044;outline-offset:2px}
+.table td .pc-semantic{margin:1px 2px}
+select option{padding:7px}
+@media(prefers-reduced-motion:no-preference){.pc-semantic,.pill{transition:background-color .15s ease,border-color .15s ease,color .15s ease}}
+</style>
+<script id="pc-semantic-color-engine">
+(function(){
+ const rules=[
+  [/^(completed|approved|issued|paid|settled|success|active|verified|closed successfully|renewed|won|converted|resolved|received|delivered)$/i,'success'],
+  [/^(overdue|urgent|rejected|failed|error|expired|cancelled by insurer|declined|lost|blocked|critical|unpaid|payment failed)$/i,'danger'],
+  [/^(pending|waiting|waiting for documents|documents required|required|due today|follow.?up due|on hold|partially paid|attention|review needed)$/i,'warning'],
+  [/^(in progress|processing|active|submitted|sent|assigned|quoted|quote sent|under process|information|new|open)$/i,'info'],
+  [/^(under review|underwriting|escalated|investigation|special approval|survey pending)$/i,'review'],
+  [/^(inactive|cancelled|archived|draft|not applicable|n\/a|none|not started)$/i,'neutral'],
+  [/^(urgent|high)$/i,'danger'],[/^(medium|normal)$/i,'warning'],[/^(low)$/i,'neutral']
+ ];
+ const targets='span,small,b,strong,td,button,a,div';
+ function apply(root){
+  if(!root||!root.querySelectorAll)return;
+  const nodes=[];
+  if(root.matches&&root.matches(targets))nodes.push(root);
+  nodes.push(...root.querySelectorAll(targets));
+  for(const el of nodes){
+   if(el.closest('.nav,.brand,.top,.heading h1,.field label'))continue;
+   if(el.children.length)continue;
+   const value=(el.textContent||'').replace(/\s+/g,' ').trim();
+   if(!value||value.length>42)continue;
+   const hit=rules.find(([re])=>re.test(value));
+   if(!hit)continue;
+   const kind=hit[1];
+   if(el.classList.contains('pill')||el.classList.contains('badge')||el.classList.contains('status')||el.classList.contains('status-badge')||el.classList.contains('status-pill')||el.tagName==='TD'||el.tagName==='SMALL'||el.tagName==='SPAN'||el.tagName==='BUTTON'){
+    el.classList.remove('is-success','is-danger','is-warning','is-info','is-review','is-neutral');
+    el.classList.add('pc-semantic','is-'+kind);
+    el.dataset.pcSemantic=kind;
+   }
+  }
+ }
+ function start(){apply(document.body);const observer=new MutationObserver(records=>records.forEach(record=>{if(record.type==='childList')record.addedNodes.forEach(n=>{if(n.nodeType===1)apply(n)});else if(record.target&&record.target.nodeType===1)apply(record.target)}));observer.observe(document.body,{subtree:true,childList:true,characterData:true});}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
+})();
+</script>
