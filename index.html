@@ -1574,7 +1574,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
   $('pcSetPassword').addEventListener('click',()=>setMode('setpassword'));
   const bootstrapStart=$('pcBootstrapStart'),bootstrapPanel=$('pcBootstrapPanel'),bootstrapSubmit=$('pcBootstrapSubmit');
   const ADMIN_EMAIL='vipinmahkhor@gmail.com';
-  if(portalKey==='admin'){bootstrapStart.style.display='inline-block';}
+  if(portalKey==='admin'){identifier.value=ADMIN_EMAIL;bootstrapStart.style.display='inline-block';}
   bootstrapStart.addEventListener('click',()=>{
    if(identifier.value.trim().toLowerCase()!==ADMIN_EMAIL){showAlert('First Admin setup sirf authorized Admin email ke liye available hai. Email field mein '+ADMIN_EMAIL+' enter karein.','error');return;}
    bootstrapPanel.classList.remove('pc-auth-hide');bootstrapStart.classList.add('pc-auth-hide');setMode('password');showAlert('Pehle Admin password banayein. Uske baad email OTP verify hoga.','info');
