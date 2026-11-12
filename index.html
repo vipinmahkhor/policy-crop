@@ -1438,3 +1438,46 @@ select option{padding:7px}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
 </script>
+
+<style id="pc-dashboard-font-banner-polish">
+/* Refined typography and balanced dashboard cards */
+:root{--ink:#142746;--muted:#667995;--line:#dce5f1;--blue:#1769e0;--teal:#078f86}
+body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;font-size:14px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.heading h1{font-weight:800;letter-spacing:-.9px;color:#102344}
+.sub,.stat .label,.field label{color:#657894}
+.stat .label{font-size:12px;font-weight:650;letter-spacing:.1px}
+.stat strong{font-weight:800;color:#142b50;letter-spacing:-.65px}
+.panel h3{font-weight:750;color:#183454;letter-spacing:-.25px}
+.table th{color:#526783;font-weight:750}
+.table td{color:#243b5a}
+.btn{font-weight:650}
+.top,.role,.search{color:#1b3557}
+.support-strip{color:#435a78}
+.pc-lead-ticker{border-color:#dce7f5!important;border-radius:15px!important;box-shadow:0 5px 18px #18365a0b}
+.pc-lead-ticker-head{font-size:13px!important;font-weight:750!important;color:#145fc7!important;margin-bottom:10px!important}
+.pc-lead-ticker-head button{font-size:10px!important;padding:6px 9px!important}
+.pc-lead-ticker-item{background:linear-gradient(145deg,#f8fbff,#f2f7ff)!important;border-color:#dce8f7!important;border-radius:10px!important;padding:9px 10px!important}
+.pc-lead-ticker-name{font-size:11px!important;color:#142d50!important}
+.pc-lead-ticker-name span{font-size:9px!important;font-weight:750}
+.pc-lead-ticker-detail{font-size:10px!important;line-height:1.5!important;color:#526681!important}
+.pc-lead-ticker-detail b{color:#203b60!important;font-weight:750}
+/* Make the campaign banner fill the same visual height as Latest Leads */
+.dashboard-top-grid{align-items:stretch!important}
+.dashboard-top-grid>.dashboard-promo-corner,.dashboard-top-grid>.pc-latest-leads{align-self:stretch!important;min-height:0}
+.dashboard-top-grid .dashboard-promo-corner{height:100%;min-height:244px!important}
+.dashboard-top-grid .dashboard-promo-stack{height:100%;min-height:244px!important;justify-content:stretch!important}
+.dashboard-top-grid #campaignSlider.dash-banner{height:100%!important;min-height:244px!important;max-height:none!important;aspect-ratio:auto!important;border:1px solid #dce7f5;box-shadow:0 7px 22px #17365b12;border-radius:15px!important}
+.dashboard-top-grid #campaignSlider .banner-slide{height:100%!important;min-height:244px!important}
+.dashboard-top-grid #campaignSlider .banner-slide img{height:100%!important;min-height:244px!important;max-height:none!important;object-fit:cover!important}
+.dashboard-top-grid #campaignSlider .dash-banner-caption{padding:30px 15px 12px!important;font-size:12px!important}
+.dashboard-top-grid #campaignSlider .dash-banner-caption p{font-size:11px!important;line-height:1.4}
+.dashboard-top-grid .pc-latest-leads{border:1px solid #dce7f5!important;border-radius:15px!important;box-shadow:0 5px 18px #18365a0b}
+.dashboard-top-grid .pc-lead-ticker-window{height:180px;max-height:180px}
+@media(max-width:700px){
+ .dashboard-top-grid{align-items:stretch!important}
+ .dashboard-top-grid .dashboard-promo-corner,.dashboard-top-grid .dashboard-promo-stack{min-height:232px!important}
+ .dashboard-top-grid #campaignSlider.dash-banner,.dashboard-top-grid #campaignSlider .banner-slide,.dashboard-top-grid #campaignSlider .banner-slide img{height:100%!important;min-height:232px!important;max-height:none!important}
+ .dashboard-top-grid .pc-lead-ticker-window{height:170px;max-height:170px}
+ .pc-lead-ticker-detail{font-size:9px!important}
+}
+</style>
