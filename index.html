@@ -1826,3 +1826,71 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
  showLogin();
 })();
 </script>
+
+<script id="PC_AUTH_IDENTITY_AND_CUSTOMER_ADD_FIX_V1">
+(function(){
+ const $=id=>document.getElementById(id), safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ // The authenticated account is authoritative; demo identity selectors must not overwrite it.
+ const originalIdentityOptions=window.identityOptions;
+ if(typeof originalIdentityOptions==='function'){
+  window.identityOptions=function(){
+   if(window.pcAuthenticatedIdentity){
+    const x=window.pcAuthenticatedIdentity,u=document.querySelector('.topright .username');
+    if(u)u.innerHTML=safe(x.name)+'<br><small style="color:#8290a4">'+safe(x.role)+'</small>';
+    ['role','pcIdentity','pcCurrentUser'].forEach(id=>{const el=$(id);if(el)el.style.display='none'});
+    return;
+   }
+   return originalIdentityOptions.apply(this,arguments);
+  };
+ }
+ const originalRefresh=window.pcRefreshIdentity;
+ if(typeof originalRefresh==='function'){
+  window.pcRefreshIdentity=function(){
+   if(window.pcAuthenticatedIdentity)return;
+   return originalRefresh.apply(this,arguments);
+  };
+ }
+ // Add the missing assignment controls to the customer form. The previous code
+ // expected pcAssignType/f_assignedTo but never created them on the form.
+ const originalGoAdd=window.goAdd;
+ if(typeof originalGoAdd==='function'){
+  window.goAdd=function(kind,customerId){
+   const result=originalGoAdd.apply(this,arguments);
+   if(kind!=='customers')return result;
+   if($('pcCustomerAssignment'))$('pcCustomerAssignment').remove();
+   const role=$('role')?.value||'Owner', team=window.db?.team||[];
+   const box=document.createElement('section');box.id='pcCustomerAssignment';box.className='panel';box.style.marginTop='14px';
+   const rms=team.filter(x=>x.role==='RM'&&x.status!=='Resigned'),agents=team.filter(x=>x.role==='Agent'&&x.status!=='Resigned'),employees=team.filter(x=>x.role==='Employee'&&x.status!=='Resigned');
+   box.innerHTML='<h3>Customer Assignment</h3><div class="field"><label>Assignment Type</label><select id="pcAssignType"><option value="">Select assignment</option>'+(role==='Owner'?'<option value="Direct">Direct to Admin</option>':'')+'<option value="Agent">Assign to Agent</option><option value="RM">Assign to RM / Agent</option><option value="Employee">Assign to Employee</option></select></div><div id="pcAssignFields"></div><input type="hidden" id="f_assignedTo"><input type="hidden" id="f_assignedRM"><small class="sub">Choose Direct to keep the customer under Admin, or select the responsible team member.</small>';
+   $('modalBody')?.querySelector('.fieldgrid')?.after(box);
+   const mode=$('pcAssignType'),fields=$('pcAssignFields'),hidden=$('f_assignedTo'),hiddenRM=$('f_assignedRM');
+   const fill=(label,id,items)=>'<div class="field"><label>'+label+'</label><select id="'+id+'"><option value="">Select '+label+'</option>'+items.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')+'</select></div>';
+   mode.onchange=()=>{
+    fields.innerHTML='';hidden.value='';hiddenRM.value='';
+    if(mode.value==='Direct'){fields.innerHTML='<p class="sub">Customer will remain directly under Admin.</p>';return}
+    if(mode.value==='Agent'){fields.innerHTML=fill('Agent','pcCustomerAgent',agents);$('pcCustomerAgent').onchange=()=>hidden.value=$('pcCustomerAgent').value;return}
+    if(mode.value==='Employee'){fields.innerHTML=fill('Employee','pcCustomerEmployee',employees);$('pcCustomerEmployee').onchange=()=>hidden.value=$('pcCustomerEmployee').value;return}
+    if(mode.value==='RM'){
+     fields.innerHTML=fill('Reporting RM','pcCustomerRM',rms)+'<div class="field"><label>Agent (optional)</label><select id="pcCustomerRMAgent" disabled><option value="">Select RM first</option></select></div>';
+     $('pcCustomerRM').onchange=()=>{const rm=$('pcCustomerRM').value,list=agents.filter(a=>(a.reportsTo||a.manager||a.rm||'')===rm),sel=$('pcCustomerRMAgent');hiddenRM.value=rm;hidden.value=rm;sel.disabled=!rm;sel.innerHTML='<option value="">Keep assigned to RM</option>'+list.map(x=>'<option value="'+safe(x.name)+'">'+safe(x.name)+'</option>').join('')};
+     $('pcCustomerRMAgent').onchange=()=>hidden.value=$('pcCustomerRMAgent').value||$('pcCustomerRM').value;
+    }
+   };
+   return result;
+  };
+ }
+ // Save handler now receives the assignment values that its existing validation expects.
+ const oldSave=window.saveForm;
+ if(typeof oldSave==='function'){
+  window.saveForm=function(kind){
+   if(kind==='customers'){
+    const mode=$('pcAssignType')?.value||'';
+    if(!mode){if(window.pcToast)pcToast('Select a customer assignment type.','error');else alert('Select a customer assignment type.');return}
+    if(mode==='Direct'){$('f_assignedTo').value='';$('f_assignedRM').value=''}
+    else if(!$('f_assignedTo')?.value){if(window.pcToast)pcToast('Select the responsible team member.','error');else alert('Select the responsible team member.');return}
+   }
+   return oldSave.apply(this,arguments);
+  };
+ }
+})();
+</script>
