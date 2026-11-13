@@ -1860,7 +1860,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
    const result=originalGoAdd.apply(this,arguments);
    if(kind!=='customers')return result;
    if($('pcCustomerAssignment'))$('pcCustomerAssignment').remove();
-   const role=$('role')?.value||'Owner', team=window.db?.team||[];
+   const role=$('role')?.value||'Owner', team=(typeof db!=='undefined'&&db.team)||[];
    const box=document.createElement('section');box.id='pcCustomerAssignment';box.className='panel';box.style.marginTop='14px';
    const rms=team.filter(x=>x.role==='RM'&&x.status!=='Resigned'),agents=team.filter(x=>x.role==='Agent'&&x.status!=='Resigned'),employees=team.filter(x=>x.role==='Employee'&&x.status!=='Resigned');
    box.innerHTML='<h3>Customer Assignment</h3><div class="field"><label>Assignment Type</label><select id="pcAssignType"><option value="">Select assignment</option>'+(role==='Owner'?'<option value="Direct">Direct to Admin</option>':'')+'<option value="Agent">Assign to Agent</option><option value="RM">Assign to RM / Agent</option><option value="Employee">Assign to Employee</option></select></div><div id="pcAssignFields"></div><input type="hidden" id="f_assignedTo"><input type="hidden" id="f_assignedRM"><small class="sub">Choose Direct to keep the customer under Admin, or select the responsible team member.</small>';
