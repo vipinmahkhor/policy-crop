@@ -1104,6 +1104,7 @@ render=function(){
  let activeProfileName='Vipin Gupta';
  const readFile=file=>new Promise(resolve=>{if(!file)return resolve('');const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=()=>resolve('');r.readAsDataURL(file)});
  function identityOptions(){
+  if(window.pcAuthenticatedIdentity){const x=window.pcAuthenticatedIdentity,u=$('.username');if(u)u.innerHTML=esc(x.name)+'<br><small style="color:#8290a4">'+esc(x.role)+'</small>';['role','pcIdentity','pcCurrentUser'].forEach(id=>{const el=$(id);if(el)el.style.display='none'});return;}
   const r=$('role').value,sel=$('pcIdentity'),items=r==='Customer'?db.customers.map(x=>x.name):r==='Owner'?['Vipin Gupta']:db.team.filter(x=>x.role===r&&x.status!=='Resigned').map(x=>x.name);
   if(!items.length&&r!=='Owner')items.push(r+' Demo');
   if(r==='Owner'&&!items.length)items.push('Vipin Gupta');
@@ -1797,7 +1798,7 @@ body{font-family:Inter,"Segoe UI","Noto Sans",Arial,sans-serif;color:#142746;fon
  }
  function lockDashboardRole(){
   const role=document.getElementById('role'),identity=document.getElementById('pcIdentity');
-  [role,identity].forEach(el=>{if(el){el.disabled=true;el.classList.remove('pc-auth-hide');el.removeAttribute('aria-hidden');el.style.display='inline-flex';el.style.opacity='1';el.style.cursor='default';}});
+  [role,identity,document.getElementById('pcCurrentUser')].forEach(el=>{if(el){el.disabled=true;el.classList.add('pc-auth-hide');el.setAttribute('aria-hidden','true');el.style.display='none';}});
   const top=document.querySelector('.topright');
   if(top&&!document.getElementById('pcSecureLogout')){
    const b=document.createElement('button');b.id='pcSecureLogout';b.type='button';b.className='btn';b.textContent='Logout';
